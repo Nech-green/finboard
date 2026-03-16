@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinBoard</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--fb:'Heebo',sans-serif;--fn:'Rubik',sans-serif;--r:12px;--rs:7px;--t:.2s ease}
+[data-theme="dark"]{--b0:#060910;--b1:#0d1117;--b2:#161b26;--bH:#252d3d;--c0:#f0f4f8;--c1:#c9d1d9;--c2:#8b949e;--c3:#6e7681;--bd:rgba(255,255,255,.06);--bs:rgba(255,255,255,.12);--ac:#e5a90a;--ad:rgba(229,169,10,.12);--at:#fcd34d;--gn:#3fb950;--gd:rgba(63,185,80,.12);--rd:#f85149;--rdd:rgba(248,81,73,.1);--bl:#58a6ff;--bld:rgba(88,166,255,.1);--pr:#bc8cff;--prd:rgba(188,140,255,.1);--or:#f0883e;--in:#0d1117;--ov:rgba(6,9,15,.8);--gc:rgba(255,255,255,.04)}
+[data-theme="light"]{--b0:#f4f6f9;--b1:#fff;--b2:#f0f2f5;--bH:#dce0e6;--c0:#1a1a2e;--c1:#2d3748;--c2:#636e7b;--c3:#9aa5b1;--bd:rgba(0,0,0,.07);--bs:rgba(0,0,0,.14);--ac:#b8860b;--ad:rgba(184,134,11,.1);--at:#92600a;--gn:#1a7f37;--gd:rgba(26,127,55,.08);--rd:#cf222e;--rdd:rgba(207,34,46,.06);--bl:#0969da;--bld:rgba(9,105,218,.06);--pr:#8250df;--prd:rgba(130,80,223,.06);--or:#bc4c00;--in:#fff;--ov:rgba(244,246,249,.85);--gc:rgba(0,0,0,.05)}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--fb);background:var(--b0);color:var(--c0);min-height:100vh;transition:background var(--t),color var(--t)}
+.H{position:sticky;top:0;z-index:100;background:var(--b1);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(16px)}.Lo{display:flex;align-items:center;gap:7px}.Lm{width:30px;height:30px;background:linear-gradient(135deg,var(--ac),#d4960d);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#000}.Ln{font-family:var(--fn);font-weight:800;font-size:16px}.Ha{display:flex;gap:4px;align-items:center}
+.sync-dot{width:8px;height:8px;border-radius:50%;margin-left:4px}.sync-on{background:var(--gn)}.sync-off{background:var(--rd)}
+.user-info{font-size:9px;color:var(--c2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.Th{width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:var(--b2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px}.Th:hover{background:var(--bH)}
+.B{font-family:var(--fb);padding:4px 9px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--b2);color:var(--c1);cursor:pointer;font-size:10px;font-weight:500;transition:all var(--t);display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.B:hover{background:var(--bH)}.Ba{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600}.Ba:hover{opacity:.9}.Bd{color:var(--rd)}.Bd:hover{background:var(--rdd)}
+.N{display:flex;gap:0;padding:1px 16px;background:var(--b1);border-bottom:1px solid var(--bd);overflow-x:auto}.N button{padding:6px 9px;font-size:10px;font-weight:500;color:var(--c2);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;font-family:var(--fb);white-space:nowrap}.N button:hover{color:var(--c0)}.N button.on{color:var(--at);border-bottom-color:var(--ac);font-weight:600}
+.M{padding:14px 16px 40px;max-width:1300px;margin:0 auto}.P{display:none;animation:fi .2s}.P.on{display:block}@keyframes fi{from{opacity:0}to{opacity:1}}
+.TF{display:flex;gap:2px;margin-bottom:10px;flex-wrap:wrap;align-items:center}.TF .B.act{background:var(--ac);color:#000;border-color:var(--ac)}
+.CG{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:7px;margin-bottom:14px}.CD{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r);padding:10px;position:relative;overflow:hidden}.CD:hover{border-color:var(--bs)}.CS{position:absolute;top:0;right:0;left:0;height:2px}.CL{font-size:8.5px;color:var(--c3);margin-bottom:2px}.CV{font-family:var(--fn);font-size:16px;font-weight:700;letter-spacing:-.3px}.CC{font-size:8.5px;margin-top:2px}.up{color:var(--gn)}.dn{color:var(--rd)}
+.CR{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.CR.f{grid-template-columns:1fr}.CB{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r);padding:12px}.CH{font-size:10px;font-weight:600;margin-bottom:7px}.CW{position:relative;height:220px}.CW.t{height:260px}
+.TB{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:10px}.TT{padding:8px 12px 0;font-size:10px;font-weight:600}.TS{overflow-x:auto}table{width:100%;border-collapse:collapse}th{padding:5px 7px;text-align:right;font-size:8.5px;font-weight:600;color:var(--c3);border-bottom:1px solid var(--bd);white-space:nowrap;background:var(--b2)}td{padding:5px 7px;font-size:10px;font-family:var(--fn);border-bottom:1px solid var(--bd);white-space:nowrap}tr:hover td{background:var(--bH)}.tn{font-family:var(--fb);font-weight:600;font-size:9.5px}
+.E{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:10px}.ET{font-size:13px;font-weight:700;font-family:var(--fn);margin-bottom:1px}.ES{font-size:9.5px;color:var(--c2);margin-bottom:10px}
+.FG{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:7px}.FR{display:flex;flex-direction:column;gap:1px}.FL{font-size:8.5px;font-weight:600;color:var(--c2)}.FI{padding:5px 7px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--in);color:var(--c0);font-family:var(--fn);font-size:11px;font-weight:500;transition:all var(--t);direction:ltr;text-align:right}.FI:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 2px var(--ad)}.FI::placeholder{color:var(--c3)}select.FI{direction:rtl;text-align:right;cursor:pointer;font-family:var(--fb)}
+.FA{margin-top:8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}.SI{font-size:9px;color:var(--gn);opacity:0;transition:opacity .3s}.SI.sh{opacity:1}
+.LI{margin-top:6px}.LT{display:flex;align-items:center;gap:4px;padding:4px 7px;background:var(--b2);border-radius:var(--rs);margin-bottom:3px;font-size:10px}.LT .ld{color:var(--c3);font-size:8.5px;min-width:42px}.LT .lt{flex:1}.LT .lv{font-family:var(--fn);font-weight:600}
+.LT .tg{font-size:7.5px;padding:1px 4px;border-radius:3px}.tg-g{background:var(--gd);color:var(--gn)}.tg-r{background:var(--rdd);color:var(--rd)}.tg-b{background:var(--bld);color:var(--bl)}.tg-p{background:var(--prd);color:var(--pr)}
+.TX{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-bottom:10px}
+.TXC{background:var(--b1);border:1px solid var(--bd);border-radius:var(--r);padding:12px}
+.TXC h4{font-family:var(--fn);font-size:11px;margin-bottom:6px}
+.TXR{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--bd);font-size:9.5px}.TXR:last-child{border:none;font-weight:600}
+/* Login screen */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;text-align:center}
+.login-screen h2{font-family:var(--fn);font-size:22px}
+.login-screen p{color:var(--c2);font-size:13px;max-width:400px}
+.login-btn{padding:12px 28px;border-radius:10px;border:1px solid var(--bs);background:var(--b1);color:var(--c0);cursor:pointer;font-family:var(--fb);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;transition:all var(--t)}
+.login-btn:hover{background:var(--bH);transform:translateY(-1px)}
+.login-btn img{width:20px;height:20px}
+.MO{position:fixed;inset:0;background:var(--ov);z-index:200;display:none;align-items:center;justify-content:center}.MO.op{display:flex}.MD{background:var(--b1);border:1px solid var(--bs);border-radius:var(--r);padding:18px;max-width:380px;width:90%}.MD h3{font-family:var(--fn);margin-bottom:6px;font-size:13px}.MD p{font-size:10px;color:var(--c2);margin-bottom:10px}
+@media(max-width:768px){.H{padding:6px 8px}.N{padding:1px 8px}.M{padding:10px 8px 30px}.CR{grid-template-columns:1fr}.CG{grid-template-columns:repeat(2,1fr)}.FG{grid-template-columns:1fr 1fr}.TX{grid-template-columns:1fr}}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--c3);border-radius:2px}
+</style>
+</head>
+<body data-theme="dark">
+<header class="H">
+  <div class="Lo"><div class="Lm">₪</div><span class="Ln">FinBoard</span><div class="sync-dot sync-off" id="syncDot" title="לא מחובר"></div></div>
+  <div class="Ha">
+    <span class="user-info" id="userInfo"></span>
+    <button class="Th" id="thB" onclick="togTh()">🌙</button>
+    <button class="B" id="authBtn" onclick="toggleAuth()">התחבר</button>
+  </div>
+</header>
+<nav class="N" id="navBar" style="display:none">
+<button class="on" data-t="dash">📊 דשבורד</button>
+<button data-t="biz">🏢 עסק</button>
+<button data-t="tax">🧾 מס</button>
+<button data-t="entry">✏️ יתרות</button>
+<button data-t="acct">🏦 חשבונות</button>
+<button data-t="transfer">🔄 העברות</button>
+<button data-t="set">⚙️ הגדרות</button>
+</nav>
+<main class="M">
+<div class="P on" id="p-login">
+  <div class="login-screen">
+    <div style="font-size:48px">📊</div>
+    <h2>FinBoard</h2>
+    <p>דשבורד פיננסי אישי ועסקי. התחבר עם Google כדי לסנכרן בין כל המכשירים שלך.</p>
+    <button class="login-btn" onclick="signIn()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+      התחבר עם Google
+    </button>
+    <p style="font-size:10px;color:var(--c3)">הנתונים שלך מוצפנים ונגישים רק לך</p>
+  </div>
+</div>
+<div class="P" id="p-dash"></div>
+<div class="P" id="p-biz"></div>
+<div class="P" id="p-tax"></div>
+<div class="P" id="p-entry"></div>
+<div class="P" id="p-acct"></div>
+<div class="P" id="p-transfer"></div>
+<div class="P" id="p-set"></div>
+</main>
+<div class="MO" id="rstM"><div class="MD"><h3>⚠️ איפוס</h3><p>כל הנתונים יימחקו מהענן.</p><div style="display:flex;gap:5px;justify-content:flex-end"><button class="B" onclick="$('rstM').classList.remove('op')">ביטול</button><button class="B Bd" onclick="resetAll()" style="background:var(--rdd)">מחק</button></div></div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ===== FIREBASE INIT =====
+firebase.initializeApp({
+  apiKey:"AIzaSyD6juU66Z90OOLKmWFC3eio_o1s9HyB1aU",
+  authDomain:"finboard-nech.firebaseapp.com",
+  projectId:"finboard-nech",
+  storageBucket:"finboard-nech.firebasestorage.app",
+  messagingSenderId:"713113119743",
+  appId:"1:713113119743:web:7f8af2dcec9c150c0ad5ca"
+});
+const auth=firebase.auth();
+const db=firebase.firestore();
+let uid=null,unsubscribe=null;
+
+// ===== AUTH =====
+function signIn(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
+function signOut(){auth.signOut()}
+function toggleAuth(){uid?signOut():signIn()}
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    uid=user.uid;
+    $('authBtn').textContent='התנתק';
+    $('userInfo').textContent=user.displayName||user.email;
+    $('syncDot').className='sync-dot sync-on';$('syncDot').title='מסונכרן';
+    $('navBar').style.display='';
+    $('p-login').classList.remove('on');
+    // Listen to Firestore for real-time sync
+    startSync();
+  } else {
+    uid=null;
+    $('authBtn').textContent='התחבר';
+    $('userInfo').textContent='';
+    $('syncDot').className='sync-dot sync-off';$('syncDot').title='לא מחובר';
+    $('navBar').style.display='none';
+    // Show login, hide all pages
+    document.querySelectorAll('.P').forEach(p=>p.classList.remove('on'));
+    $('p-login').classList.add('on');
+    if(unsubscribe){unsubscribe();unsubscribe=null}
+  }
+});
+
+function startSync(){
+  if(unsubscribe)unsubscribe();
+  const docRef=db.collection('users').doc(uid).collection('data').doc('main');
+  unsubscribe=docRef.onSnapshot(snap=>{
+    if(snap.exists){
+      S=snap.data();
+      // Ensure arrays exist
+      if(!S.incomes)S.incomes=[];if(!S.expenses)S.expenses=[];if(!S.transfers)S.transfers=[];if(!S.taxPayments)S.taxPayments=[];if(!S.cats)S.cats=[...DEF_EC];if(!S.months)S.months={};if(!S.accounts)S.accounts={};if(!S.salDeps)S.salDeps={...DEF_SAL};
+      renderCurrent();
+    } else {
+      // First time — initialize with defaults
+      S=defaultState();
+      cloudSave();
+    }
+  });
+}
+
+async function cloudSave(){
+  if(!uid)return;
+  try{
+    await db.collection('users').doc(uid).collection('data').doc('main').set(JSON.parse(JSON.stringify(S)));
+    flashSync();
+  }catch(e){console.error('Save error:',e)}
+}
+
+function flashSync(){$('syncDot').style.background='var(--ac)';setTimeout(()=>{$('syncDot').style.background=''},500)}
+
+function save(){cloudSave()}
+
+// ===== CONFIG =====
+const DEF_EC=['עובר ושב','קרן כספית','פיקדון אישי','ביטוח ישיר - כללי','ביטוח ישיר - מניות','מיטב','מיטב טרייד','מנורה מבטחים - תגמולים ופיצויים','מנורה מבטחים - גמל להשקעה','הראל השתלמות','מנורה מבטחים השתלמות','פנסיה'];
+const MERGE={'מנורה מבטחים - תגמולים ופיצויים':'מנורה תגמולים','מנורה מבטחים - גמל להשקעה':'מנורה גמל','הראל השתלמות':'השתלמות','מנורה מבטחים השתלמות':'השתלמות'};
+const SHN={'עובר ושב':'עו"ש','קרן כספית':'קרן כספית','פיקדון אישי':'פיקדון','ביטוח ישיר - כללי':'ביט.ישיר כללי','ביטוח ישיר - מניות':'ביט.ישיר מניות','מיטב':'מיטב','מיטב טרייד':'מיטב טרייד','מנורה תגמולים':'מנורה תגמולים','מנורה גמל':'מנורה גמל','השתלמות':'השתלמות','פנסיה':'פנסיה'};
+const COL=['#e5a90a','#3fb950','#f85149','#58a6ff','#bc8cff','#f0883e','#3ddbd9','#f778ba','#79c0ff','#d2a8ff','#56d364'];
+const TX_R={'קרן כספית':.25,'פיקדון אישי':.25,'ביטוח ישיר - כללי':.25,'ביטוח ישיר - מניות':.25,'מיטב':.25,'מיטב טרייד':.25,'מנורה תגמולים':.25,'מנורה גמל':.25,'השתלמות':0,'פנסיה':0,'עובר ושב':0};
+const VAT=.17;
+const BRK=[{u:84120,r:.1},{u:120720,r:.14},{u:193800,r:.2},{u:269280,r:.31},{u:560280,r:.35},{u:721560,r:.47},{u:1/0,r:.5}];
+function calcIT(a){let t=0,p=0;for(const b of BRK){const x=Math.min(a,b.u)-p;if(x<=0)break;t+=x*b.r;p=b.u}return t}
+const EX_CATS=[{id:'rent',n:'שכירות משרד',rec:1,vat:1},{id:'computer',n:'ציוד/מחשב/תוכנות',rec:1,vat:1},{id:'internet',n:'טלפון/אינטרנט',rec:1,vat:1,p:.5},{id:'transport',n:'תחבורה/נסיעות',rec:1,vat:1},{id:'accounting',n:'רו"ח/עו"ד',rec:1,vat:1},{id:'bituach',n:'ביטוח לאומי',rec:1,vat:0},{id:'pension',n:'הפקדות פנסיה/השתלמות',rec:1,vat:0},{id:'marketing',n:'פרסום/שיווק',rec:1,vat:1},{id:'office',n:'חומרי משרד',rec:1,vat:1},{id:'meals',n:'אוכל עסקי',rec:1,vat:0,p:.8},{id:'rent_home',n:'שכירות דירה',rec:0},{id:'food',n:'אוכל/סופר',rec:0},{id:'bills',n:'חשבונות בית',rec:0},{id:'fun',n:'בילויים',rec:0},{id:'other_biz',n:'עסקי אחר',rec:1,vat:1},{id:'other',n:'אישי אחר',rec:0}];
+const IN_CATS=[{id:'client',n:'לקוח'},{id:'retainer',n:'ריטיינר'},{id:'consulting',n:'ייעוץ'},{id:'other',n:'אחר'}];
+const TAX_T=[{id:'vat',n:'מע"מ',i:'🧾'},{id:'income_adv',n:'מקדמות מס הכנסה',i:'📋'},{id:'bituach_leumi',n:'ביטוח לאומי',i:'🏥'},{id:'income_annual',n:'שומה שנתית',i:'📊'}];
+const DEF_SAL={'ביטוח ישיר - מניות':2000,'השתלמות':1540,'פנסיה':1500};
+const PL={'2026-01':{'עובר ושב':30116,'קרן כספית':41600,'פיקדון אישי':0,'ביטוח ישיר - כללי':77878,'ביטוח ישיר - מניות':157451,'מיטב':62886,'מיטב טרייד':197920,'מנורה מבטחים - תגמולים ופיצויים':58111,'מנורה מבטחים - גמל להשקעה':545,'הראל השתלמות':85880,'מנורה מבטחים השתלמות':8321,'פנסיה':61060},'2026-02':{'עובר ושב':33148,'קרן כספית':41683,'פיקדון אישי':0,'ביטוח ישיר - כללי':78800,'ביטוח ישיר - מניות':164583,'מיטב':62986,'מיטב טרייד':201250,'מנורה מבטחים - תגמולים ופיצויים':59761,'מנורה מבטחים - גמל להשקעה':553,'הראל השתלמות':85904,'מנורה מבטחים השתלמות':8165,'פנסיה':61494},'2026-03':{'עובר ושב':74342,'קרן כספית':41770,'פיקדון אישי':0,'ביטוח ישיר - כללי':79114,'ביטוח ישיר - מניות':170830,'מיטב':63792,'מיטב טרייד':195177,'מנורה מבטחים - תגמולים ופיצויים':60246,'מנורה מבטחים - גמל להשקעה':553,'הראל השתלמות':84305,'מנורה מבטחים השתלמות':8183,'פנסיה':61174}};
+
+function defaultState(){const ac={};DEF_EC.forEach(c=>{if(c!=='עובר ושב')ac[c]={dep:0,fd:0,fs:0}});return{cats:[...DEF_EC],months:{...PL},incomes:[],expenses:[],transfers:[],taxPayments:[],accounts:ac,salDeps:{...DEF_SAL},theme:'dark'}}
+let S=defaultState(),CH=[],curP='ytd',curTab='dash';
+
+function ks(){return Object.keys(S.months||{}).sort()}
+function fmt(n){if(n==null||isNaN(n))return'—';return'₪'+Math.round(n).toLocaleString('he-IL')}
+function fp(n){if(n==null||isNaN(n)||!isFinite(n))return'—';return(n>0?'+':'')+n.toFixed(2)+'%'}
+function sh(n){return SHN[n]||n}
+function ml(k){const[y,m]=k.split('-');return['','ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][+m]+' '+y}
+function ms(k){const[y,m]=k.split('-');return['','ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'][+m]+"'"+y.slice(2)}
+function dispCats(){const s=new Set(),o=[];(S.cats||[]).forEach(c=>{const d=MERGE[c]||c;if(!s.has(d)){s.add(d);o.push(d)}});return o}
+function toD(m){const d={};dispCats().forEach(c=>d[c]=0);(S.cats||[]).forEach(c=>{const dc=MERGE[c]||c;d[dc]=(d[dc]||0)+(m[c]||0)});return d}
+function invCats(){return dispCats().filter(c=>c!=='עובר ושב'&&c!=='פיקדון אישי')}
+function fK(p){const K=ks();if(!K.length)return K;const[ly]=K[K.length-1].split('-').map(Number);if(p==='1m')return K.slice(-2);if(p==='3m')return K.slice(-3);if(p==='ytd')return K.filter(k=>k>=ly+'-01');if(p==='1y')return K.slice(-12);return K}
+function mb(dc){return{'מנורה תגמולים':'מנורה מבטחים - תגמולים ופיצויים','מנורה גמל':'מנורה מבטחים - גמל להשקעה','השתלמות':'הראל השתלמות'}[dc]||dc}
+
+function renderCurrent(){
+  document.body.dataset.theme=S.theme||'dark';
+  $('thB').textContent=(S.theme||'dark')==='dark'?'🌙':'☀️';
+  if(curTab==='dash')renderDash();
+  else if(pages[curTab])pages[curTab]();
+}
+
+// ===== ANALYTICS =====
+function savA(p){const K=fK(p||curP),dc=dispCats();if(!K.length)return null;
+  const cd=dc.map((cat,ci)=>{const vals=K.map(k=>toD(S.months[k]||{})[cat]);const lv=vals[vals.length-1]||0;const fi=vals.findIndex(v=>v>0);let twr=1;for(let i=Math.max(1,fi>=0?fi+1:1);i<vals.length;i++){if(vals[i-1]>0){const r=vals[i]/vals[i-1];if(r>0)twr*=r}}const nM=K.length-1-(fi>=0?fi:0);const ann=nM>0&&twr>0?(Math.pow(twr,12/nM)-1)*100:0;const ac=S.accounts[cat]||{};const gain=lv-(ac.dep||0);const tr=TX_R[cat]||.25;const taxA=gain>0?gain*tr:0;return{name:cat,lv,vals,ann,dep:ac.dep||0,gain,taxA,net:lv-taxA,feeA:lv*(ac.fs||0)/100,color:COL[ci%COL.length],isInv:invCats().includes(cat),share:0}});
+  const tot=cd.reduce((s,c)=>s+c.lv,0);cd.forEach(c=>c.share=tot?c.lv/tot*100:0);
+  const tp=K.length>1?dc.reduce((s,c)=>s+toD(S.months[K[K.length-2]]||{})[c],0):tot;
+  return{K,cd,tot,tp,chg:tp?((tot-tp)/Math.abs(tp)*100):0,tNet:cd.reduce((s,c)=>s+c.net,0),tFee:cd.reduce((s,c)=>s+c.feeA,0)}}
+
+function bizA(p){const K=fK(p||curP);if(!K.length)return null;
+  const pI=(S.incomes||[]).filter(i=>K.includes(i.month)),pE=(S.expenses||[]).filter(e=>K.includes(e.month));
+  const tI=pI.reduce((s,i)=>s+i.amount,0),tE=pE.reduce((s,e)=>s+e.amount,0);
+  const tRec=pE.filter(e=>{const c=EX_CATS.find(x=>x.id===e.cat);return c&&c.rec}).reduce((s,e)=>{const c=EX_CATS.find(x=>x.id===e.cat);return s+e.amount*(c.p||1)},0);
+  const vatI=tI*VAT/(1+VAT),vatE=pE.filter(e=>{const c=EX_CATS.find(x=>x.id===e.cat);return c&&c.vat}).reduce((s,e)=>{const c=EX_CATS.find(x=>x.id===e.cat);return s+(e.amount*(c.p||1))*VAT/(1+VAT)},0);
+  const vatD=vatI-vatE,taxable=tI/(1+VAT)-tRec/(1+VAT),af=K.length>0?12/K.length:1;
+  const eAT=calcIT(taxable*af),ePT=eAT/af,eBL=Math.min(taxable*af,44020*12)*.1783/af;
+  const byCat={};pE.forEach(e=>{if(!byCat[e.cat])byCat[e.cat]={t:0,n:0};byCat[e.cat].t+=e.amount;byCat[e.cat].n++});
+  return{K,tI,tE,tRec,vatD,ePT,eAT,eBL,taxable,byCat,net:tI-tE-vatD-ePT-eBL}}
+
+function taxTk(){const yr=new Date().getFullYear().toString();const yP=(S.taxPayments||[]).filter(p=>p.month&&p.month.startsWith(yr));const yI=(S.incomes||[]).filter(i=>i.month&&i.month.startsWith(yr));const yE=(S.expenses||[]).filter(e=>e.month&&e.month.startsWith(yr));
+  const tI=yI.reduce((s,i)=>s+i.amount,0);const tRec=yE.filter(e=>{const c=EX_CATS.find(x=>x.id===e.cat);return c&&c.rec}).reduce((s,e)=>{const c=EX_CATS.find(x=>x.id===e.cat);return s+e.amount*(c.p||1)},0);
+  const taxable=tI/(1+VAT)-tRec/(1+VAT);
+  const vE=tI*VAT/(1+VAT)-yE.filter(e=>{const c=EX_CATS.find(x=>x.id===e.cat);return c&&c.vat}).reduce((s,e)=>{const c=EX_CATS.find(x=>x.id===e.cat);return s+(e.amount*(c.p||1))*VAT/(1+VAT)},0);
+  const iE=calcIT(taxable),bE=Math.min(taxable,44020*12)*.1783;
+  const vP=yP.filter(p=>p.type==='vat').reduce((s,p)=>s+p.amount,0);
+  const iP=yP.filter(p=>p.type==='income_adv'||p.type==='income_annual').reduce((s,p)=>s+p.amount,0);
+  const bP=yP.filter(p=>p.type==='bituach_leumi').reduce((s,p)=>s+p.amount,0);
+  return{yr,vE,vP,vB:vE-vP,iE,iP,iB:iE-iP,bE,bP,bB:bE-bP,tE:vE+iE+bE,tP:vP+iP+bP}}
+
+// ===== RENDER FUNCTIONS =====
+// (identical logic to v8 but calling save() which now syncs to Firebase)
+const tfHTML=()=>['1m','3m','ytd','1y','all'].map(p=>`<button class="B ${curP===p?'act':''}" onclick="curP='${p}';renderCurrent()">${{'1m':'חודש','3m':'3 חוד\'','ytd':'YTD','1y':'שנה','all':'הכל'}[p]}</button>`).join('');
+
+function renderDash(){CH.forEach(c=>c.destroy());CH=[];const a=savA(),b=bizA(),t=taxTk(),el=$('p-dash');
+  if(!a||!a.K.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--c2)"><p style="font-size:15px">👋 ברוך הבא</p><p style="font-size:11px">הוסף חודש ב"יתרות"</p></div>';return}
+  const inv=a.cd.filter(c=>c.isInv&&c.lv>0),sA=[...inv].sort((x,y)=>y.ann-x.ann),best=sA[0];
+  el.innerHTML=`<div class="TF">${tfHTML()}</div>
+  <div class="CG">
+    <div class="CD"><div class="CS" style="background:var(--ac)"></div><div class="CL">סך נכסים</div><div class="CV">${fmt(a.tot)}</div><div class="CC ${a.chg>=0?'up':'dn'}">${fp(a.chg)}</div></div>
+    <div class="CD"><div class="CS" style="background:var(--gn)"></div><div class="CL">נטו אחרי מס</div><div class="CV">${fmt(a.tNet)}</div></div>
+    ${b?`<div class="CD"><div class="CS" style="background:var(--bl)"></div><div class="CL">הכנסות</div><div class="CV">${fmt(b.tI)}</div></div><div class="CD"><div class="CS" style="background:var(--rd)"></div><div class="CL">הוצאות</div><div class="CV">${fmt(b.tE)}</div></div><div class="CD"><div class="CS" style="background:var(--gn)"></div><div class="CL">רווח נקי</div><div class="CV">${fmt(b.net)}</div></div>`:''}
+    <div class="CD"><div class="CS" style="background:var(--or)"></div><div class="CL">🧾 יתרת מס ${t.yr}</div><div class="CV ${(t.tE-t.tP)>0?'dn':'up'}">${fmt(t.tE-t.tP)}</div><div class="CC">${(t.tE-t.tP)>0?'חובה':'זכות'}</div></div>
+    ${best?`<div class="CD"><div class="CS" style="background:var(--pr)"></div><div class="CL">🏆 ${sh(best.name)}</div><div class="CV" style="font-size:13px">${fp(best.ann)}</div></div>`:``}
+  </div>
+  <div class="CR f"><div class="CB"><div class="CH">📈 מגמה</div><div class="CW t"><canvas id="c1"></canvas></div></div></div>
+  <div class="CR"><div class="CB"><div class="CH">🥧 התפלגות</div><div class="CW"><canvas id="c2"></canvas></div></div><div class="CB"><div class="CH">📊 TWR שנתי</div><div class="CW"><canvas id="c3"></canvas></div></div></div>
+  <div class="TB"><div class="TT">📋 ביצועים</div><div class="TS"><table id="pt"></table></div></div>`;
+  const lbs=a.K.map(ms),dk=document.body.dataset.theme==='dark';Chart.defaults.color=dk?'#8b949e':'#636e7b';Chart.defaults.borderColor=dk?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';Chart.defaults.font.family='Heebo';const gc=dk?'rgba(255,255,255,.04)':'rgba(0,0,0,.05)',tt={rtl:true,textDirection:'rtl'};
+  const tots=a.K.map(k=>dispCats().reduce((s,c)=>s+toD(S.months[k]||{})[c],0));
+  CH.push(new Chart($('c1'),{type:'line',data:{labels:lbs,datasets:[{data:tots,borderColor:'#e5a90a',backgroundColor:dk?'rgba(229,169,10,.08)':'rgba(229,169,10,.12)',fill:true,tension:.4,pointRadius:2,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.y)},...tt}},scales:{y:{ticks:{callback:v=>'₪'+(v/1e3).toFixed(0)+'K'},grid:{color:gc}},x:{grid:{display:false}}}}}));
+  if(inv.length){const tV=inv.reduce((s,c)=>s+c.lv,0);
+    CH.push(new Chart($('c2'),{type:'doughnut',data:{labels:inv.map(c=>sh(c.name)),datasets:[{data:inv.map(c=>c.lv),backgroundColor:inv.map(c=>c.color),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',rtl:true,labels:{padding:4,font:{size:7.5},usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.parsed)}`},...tt}}}}));
+    CH.push(new Chart($('c3'),{type:'bar',data:{labels:sA.map(c=>sh(c.name)),datasets:[{data:sA.map(c=>c.ann),backgroundColor:sA.map(c=>c.ann>=0?(dk?'rgba(63,185,80,.6)':'rgba(26,127,55,.5)'):(dk?'rgba(248,81,73,.6)':'rgba(207,34,46,.5)')),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fp(c.parsed.x)},...tt}},scales:{x:{ticks:{callback:v=>v+'%'},grid:{color:gc}},y:{grid:{display:false},ticks:{font:{size:7.5}}}}}}));}
+  $('pt').innerHTML=`<thead><tr><th>חיסכון</th><th>ערך</th><th>%</th><th>שנתי</th><th>מס</th><th>נטו</th></tr></thead><tbody>${inv.sort((x,y)=>y.ann-x.ann).map(c=>`<tr><td class="tn">${sh(c.name)}</td><td>${fmt(c.lv)}</td><td>${c.share.toFixed(0)}%</td><td style="color:${c.ann>=0?'var(--gn)':'var(--rd)'}; font-weight:600">${fp(c.ann)}</td><td>${c.taxA>0?fmt(c.taxA):'פטור'}</td><td style="font-weight:600">${fmt(c.net)}</td></tr>`).join('')}</tbody>`;}
+
+function renderBiz(){const b=bizA(),el=$('p-biz');
+  el.innerHTML=`<div class="TF">${tfHTML()}</div>
+  <div class="E"><div class="ET">💵 הכנסה</div><div class="FG"><div class="FR"><label class="FL">חודש</label><select class="FI" id="biM">${ks().map(k=>`<option value="${k}">${ml(k)}</option>`).join('')}</select></div><div class="FR"><label class="FL">סכום (כולל מע"מ)</label><input type="number" class="FI" id="biA" placeholder="0"></div><div class="FR"><label class="FL">סוג</label><select class="FI" id="biC">${IN_CATS.map(c=>`<option value="${c.id}">${c.n}</option>`).join('')}</select></div><div class="FR"><label class="FL">תיאור</label><input class="FI" id="biD" placeholder="" style="direction:rtl;text-align:right"></div></div><div class="FA"><button class="B Ba" onclick="addI()">+</button></div></div>
+  <div class="E"><div class="ET">💸 הוצאה</div><div class="FG"><div class="FR"><label class="FL">חודש</label><select class="FI" id="beM">${ks().map(k=>`<option value="${k}">${ml(k)}</option>`).join('')}</select></div><div class="FR"><label class="FL">סכום</label><input type="number" class="FI" id="beA" placeholder="0"></div><div class="FR"><label class="FL">קטגוריה</label><select class="FI" id="beC">${EX_CATS.map(c=>`<option value="${c.id}">${c.n}${c.rec?' ✓':''}</option>`).join('')}</select></div><div class="FR"><label class="FL">תיאור</label><input class="FI" id="beD" placeholder="" style="direction:rtl;text-align:right"></div></div><div class="FA"><button class="B Ba" onclick="addE()">+</button></div></div>
+  ${b?`<div class="CG"><div class="CD"><div class="CS" style="background:var(--gn)"></div><div class="CL">הכנסות</div><div class="CV">${fmt(b.tI)}</div></div><div class="CD"><div class="CS" style="background:var(--rd)"></div><div class="CL">הוצאות</div><div class="CV">${fmt(b.tE)}</div></div><div class="CD"><div class="CS" style="background:var(--bl)"></div><div class="CL">מוכר</div><div class="CV">${fmt(b.tRec)}</div></div><div class="CD"><div class="CS" style="background:var(--gn)"></div><div class="CL">נטו</div><div class="CV">${fmt(b.net)}</div></div></div>
+  <div class="TB"><div class="TT">הוצאות לפי קטגוריה</div><div class="TS"><table><thead><tr><th>קטגוריה</th><th>סכום</th><th>מוכר</th></tr></thead><tbody>${Object.entries(b.byCat).sort((a,b)=>b[1].t-a[1].t).map(([id,d])=>{const c=EX_CATS.find(x=>x.id===id);return`<tr><td class="tn">${c?c.n:id}</td><td>${fmt(d.t)}</td><td>${c&&c.rec?'✓':'✗'}</td></tr>`}).join('')}</tbody></table></div></div>`:''}
+  <div class="E"><div class="ET">הכנסות</div><div class="LI" id="biL"></div></div><div class="E"><div class="ET">הוצאות</div><div class="LI" id="beL"></div></div>`;
+  if(ks().length){$('biM').value=ks().slice(-1)[0];$('beM').value=ks().slice(-1)[0]}rIL();rEL();}
+function addI(){const m=$('biM').value,a=+$('biA').value,c=$('biC').value,d=$('biD').value.trim();if(!m||!a)return;S.incomes.push({id:Date.now(),month:m,amount:a,cat:c,desc:d||'הכנסה'});if(S.months[m])S.months[m]['עובר ושב']=(S.months[m]['עובר ושב']||0)+a;save();$('biA').value='';$('biD').value='';renderBiz()}
+function addE(){const m=$('beM').value,a=+$('beA').value,c=$('beC').value,d=$('beD').value.trim();if(!m||!a)return;S.expenses.push({id:Date.now(),month:m,amount:a,cat:c,desc:d||'הוצאה'});if(S.months[m])S.months[m]['עובר ושב']=(S.months[m]['עובר ושב']||0)-a;save();$('beA').value='';$('beD').value='';renderBiz()}
+function delI(id){const i=S.incomes.find(x=>x.id===id);if(!i||!confirm('למחוק?'))return;if(S.months[i.month])S.months[i.month]['עובר ושב']-=i.amount;S.incomes=S.incomes.filter(x=>x.id!==id);save();renderBiz()}
+function delE(id){const e=S.expenses.find(x=>x.id===id);if(!e||!confirm('למחוק?'))return;if(S.months[e.month])S.months[e.month]['עובר ושב']+=e.amount;S.expenses=S.expenses.filter(x=>x.id!==id);save();renderBiz()}
+function rIL(){const el=$('biL');if(!el)return;el.innerHTML=[...S.incomes].sort((a,b)=>b.id-a.id).slice(0,30).map(i=>`<div class="LT"><span class="ld">${ms(i.month)}</span><span class="tg tg-b">${(IN_CATS.find(x=>x.id===i.cat)||{}).n||''}</span><span class="lt">${i.desc}</span><span class="lv up">${fmt(i.amount)}</span><button class="B Bd" onclick="delI(${i.id})" style="padding:0 3px;font-size:7px">✕</button></div>`).join('')||'<p style="color:var(--c3);font-size:9px">אין</p>'}
+function rEL(){const el=$('beL');if(!el)return;el.innerHTML=[...S.expenses].sort((a,b)=>b.id-a.id).slice(0,30).map(e=>{const c=EX_CATS.find(x=>x.id===e.cat);return`<div class="LT"><span class="ld">${ms(e.month)}</span><span class="tg ${c&&c.rec?'tg-g':'tg-r'}">${c?c.n:''}</span><span class="lt">${e.desc}</span><span class="lv dn">${fmt(e.amount)}</span><button class="B Bd" onclick="delE(${e.id})" style="padding:0 3px;font-size:7px">✕</button></div>`}).join('')||'<p style="color:var(--c3);font-size:9px">אין</p>'}
+
+function renderTax(){const t=taxTk(),el=$('p-tax');const bc=(v)=>v>0?'dn':'up';const bt=(v)=>v>0?'חובה':'זכות';
+  el.innerHTML=`<div class="E"><div class="ET">🧾 מעקב מס — ${t.yr}</div><div class="ES">שילמת מול הערכה. שלילי=זכות, חיובי=חובה.</div></div>
+  <div class="TX">
+    <div class="TXC"><h4>🧾 מע"מ</h4><div class="TXR"><span>הערכה</span><span>${fmt(t.vE)}</span></div><div class="TXR"><span>שולם</span><span style="color:var(--gn)">${fmt(t.vP)}</span></div><div class="TXR"><span>יתרה</span><span class="${bc(t.vB)}">${fmt(t.vB)} (${bt(t.vB)})</span></div></div>
+    <div class="TXC"><h4>📋 מס הכנסה</h4><div class="TXR"><span>הערכה</span><span>${fmt(t.iE)}</span></div><div class="TXR"><span>שולם</span><span style="color:var(--gn)">${fmt(t.iP)}</span></div><div class="TXR"><span>יתרה</span><span class="${bc(t.iB)}">${fmt(t.iB)} (${bt(t.iB)})</span></div></div>
+    <div class="TXC"><h4>🏥 ביטוח לאומי</h4><div class="TXR"><span>הערכה</span><span>${fmt(t.bE)}</span></div><div class="TXR"><span>שולם</span><span style="color:var(--gn)">${fmt(t.bP)}</span></div><div class="TXR"><span>יתרה</span><span class="${bc(t.bB)}">${fmt(t.bB)} (${bt(t.bB)})</span></div></div>
+    <div class="TXC"><h4>📊 סיכום</h4><div class="TXR"><span>חובה</span><span>${fmt(t.tE)}</span></div><div class="TXR"><span>שולם</span><span style="color:var(--gn)">${fmt(t.tP)}</span></div><div class="TXR"><span>יתרה</span><span class="${bc(t.tE-t.tP)}" style="font-size:13px">${fmt(t.tE-t.tP)} (${bt(t.tE-t.tP)})</span></div></div>
+  </div>
+  <div class="E"><div class="ET">+ תשלום מס</div><div class="ES">יורד מעו"ש</div><div class="FG"><div class="FR"><label class="FL">חודש</label><select class="FI" id="txM">${ks().map(k=>`<option value="${k}">${ml(k)}</option>`).join('')}</select></div><div class="FR"><label class="FL">סוג</label><select class="FI" id="txT">${TAX_T.map(t=>`<option value="${t.id}">${t.i} ${t.n}</option>`).join('')}</select></div><div class="FR"><label class="FL">סכום</label><input type="number" class="FI" id="txA" placeholder="0"></div></div><div class="FA"><button class="B Ba" onclick="addTX()">+</button></div></div>
+  <div class="E"><div class="ET">תשלומים</div><div class="LI" id="txL"></div></div>`;
+  if(ks().length)$('txM').value=ks().slice(-1)[0];rTXL();}
+function addTX(){const m=$('txM').value,t=$('txT').value,a=+$('txA').value;if(!m||!a)return;S.taxPayments.push({id:Date.now(),month:m,type:t,amount:a});if(S.months[m])S.months[m]['עובר ושב']=(S.months[m]['עובר ושב']||0)-a;save();renderTax()}
+function delTX(id){const p=S.taxPayments.find(x=>x.id===id);if(!p||!confirm('למחוק?'))return;if(S.months[p.month])S.months[p.month]['עובר ושב']+=p.amount;S.taxPayments=S.taxPayments.filter(x=>x.id!==id);save();renderTax()}
+function rTXL(){const el=$('txL');if(!el)return;el.innerHTML=[...S.taxPayments].sort((a,b)=>b.id-a.id).map(p=>{const t=TAX_T.find(x=>x.id===p.type);return`<div class="LT"><span class="ld">${ms(p.month)}</span><span class="tg tg-p">${t?t.n:p.type}</span><span class="lv dn">${fmt(p.amount)}</span><button class="B Bd" onclick="delTX(${p.id})" style="padding:0 3px;font-size:7px">✕</button></div>`}).join('')||'<p style="color:var(--c3);font-size:9px">אין</p>'}
+
+function renderEntry(){const K=ks();$('p-entry').innerHTML=`<div class="E"><div class="ET">✏️ יתרות</div><div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap"><select class="FI" id="eM" style="min-width:110px">${K.map(k=>`<option value="${k}">${ml(k)}</option>`).join('')}</select><input type="month" class="FI" id="eN" style="min-width:110px;direction:ltr"><button class="B" onclick="addMo()">+ חודש</button></div><div class="FG" id="eF"></div><div class="FA"><button class="B Ba" onclick="svMo()">💾</button><button class="B Bd" onclick="dlMo()">🗑️</button><span class="SI" id="sv">✓</span></div></div>`;if(K.length){$('eM').value=K[K.length-1];ldM()}$('eM').onchange=ldM}
+function ldM(){const k=$('eM').value;if(!k)return;const d=S.months[k]||{};$('eF').innerHTML=(S.cats||[]).map(c=>`<div class="FR"><label class="FL">${c}</label><input type="number" class="FI" data-c="${c}" value="${d[c]||''}" placeholder="0"></div>`).join('')}
+function svMo(){const k=$('eM').value;if(!k)return;if(!S.months[k])S.months[k]={};document.querySelectorAll('#eF input[data-c]').forEach(i=>{S.months[k][i.dataset.c]=+i.value||0});save();$('sv').classList.add('sh');setTimeout(()=>$('sv').classList.remove('sh'),1500)}
+function addMo(){let v=$('eN').value;if(!v){const K=ks();if(K.length){const[y,m]=K[K.length-1].split('-').map(Number);let nm=m+1,ny=y;if(nm>12){nm=1;ny++}v=ny+'-'+String(nm).padStart(2,'0')}else{const n=new Date();v=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')}}if(S.months[v])return alert('קיים');S.months[v]={};save();renderEntry();$('eM').value=v;ldM()}
+function dlMo(){const k=$('eM').value;if(!k||!confirm(`למחוק ${ml(k)}?`))return;delete S.months[k];S.incomes=S.incomes.filter(i=>i.month!==k);S.expenses=S.expenses.filter(e=>e.month!==k);S.transfers=S.transfers.filter(t=>t.month!==k);S.taxPayments=S.taxPayments.filter(p=>p.month!==k);save();renderEntry()}
+
+function renderAcct(){$('p-acct').innerHTML=`<div class="E"><div class="ET">🏦 חשבונות</div><div class="TS"><table><thead><tr><th>חיסכון</th><th>הופקד ₪</th><th>דמ"נ הפקדה %</th><th>דמ"נ צבירה %</th></tr></thead><tbody>${dispCats().filter(c=>c!=='עובר ושב').map(c=>{const a=S.accounts[c]||{};return`<tr><td class="tn">${sh(c)}</td><td><input type="number" class="FI" data-ac="${c}" data-f="dep" value="${a.dep||''}" style="width:90px"></td><td><input type="number" step=".01" class="FI" data-ac="${c}" data-f="fd" value="${a.fd||''}" style="width:60px"></td><td><input type="number" step=".01" class="FI" data-ac="${c}" data-f="fs" value="${a.fs||''}" style="width:60px"></td></tr>`}).join('')}</tbody></table></div><div class="FA"><button class="B Ba" onclick="svAc()">💾</button></div></div>
+  <div class="E"><div class="ET">➕ חיסכון חדש</div><div style="display:flex;gap:4px"><input class="FI" id="ncI" placeholder="שם" style="direction:rtl;text-align:right;max-width:180px"><button class="B Ba" onclick="addCat()">+</button></div></div>`}
+function svAc(){document.querySelectorAll('[data-ac]').forEach(i=>{const c=i.dataset.ac,f=i.dataset.f;if(!S.accounts[c])S.accounts[c]={dep:0,fd:0,fs:0};S.accounts[c][f]=+i.value||0});save()}
+function addCat(){const n=$('ncI').value.trim();if(!n||S.cats.includes(n))return;S.cats.push(n);S.accounts[n]={dep:0,fd:0,fs:0};save();$('ncI').value='';renderAcct()}
+
+function renderTr(){const cats=dispCats().filter(c=>c!=='פיקדון אישי');$('p-transfer').innerHTML=`<div class="E"><div class="ET">🔄 העברה</div><div class="FG"><div class="FR"><label class="FL">חודש</label><select class="FI" id="tM">${ks().map(k=>`<option value="${k}">${ml(k)}</option>`).join('')}</select></div><div class="FR"><label class="FL">מ</label><select class="FI" id="tF">${cats.map(c=>`<option>${sh(c)}</option>`).join('')}</select></div><div class="FR"><label class="FL">ל</label><select class="FI" id="tT">${cats.map((c,i)=>`<option ${i===4?'selected':''}>${sh(c)}</option>`).join('')}</select></div><div class="FR"><label class="FL">סכום</label><input type="number" class="FI" id="tA"></div></div><div class="FA"><button class="B Ba" onclick="addTr()">+</button></div></div><div class="E"><div class="ET">היסטוריה</div><div class="LI" id="tL"></div></div>`;if(ks().length)$('tM').value=ks().slice(-1)[0];rTL()}
+function addTr(){const m=$('tM').value,f=$('tF').value,t=$('tT').value,a=+$('tA').value;if(!m||!f||!t||f===t||!a)return;const fc=Object.entries(SHN).find(([,v])=>v===f)?.[0]||f;const tc=Object.entries(SHN).find(([,v])=>v===t)?.[0]||t;S.transfers.push({id:Date.now(),month:m,from:fc,to:tc,amount:a});if(S.months[m]){S.months[m][mb(fc)]=(S.months[m][mb(fc)]||0)-a;S.months[m][mb(tc)]=(S.months[m][mb(tc)]||0)+a}save();$('tA').value='';rTL()}
+function delTr(id){const t=S.transfers.find(x=>x.id===id);if(!t||!confirm('למחוק?'))return;if(S.months[t.month]){S.months[t.month][mb(t.from)]+=t.amount;S.months[t.month][mb(t.to)]-=t.amount}S.transfers=S.transfers.filter(x=>x.id!==id);save();rTL()}
+function rTL(){const el=$('tL');if(!el)return;el.innerHTML=[...S.transfers].sort((a,b)=>b.id-a.id).map(t=>`<div class="LT"><span class="ld">${ms(t.month)}</span><span class="lt">${sh(t.from)} → ${sh(t.to)}</span><span class="lv">${fmt(t.amount)}</span><button class="B Bd" onclick="delTr(${t.id})" style="padding:0 3px;font-size:7px">✕</button></div>`).join('')||'<p style="color:var(--c3);font-size:9px">אין</p>'}
+
+function renderSet(){$('p-set').innerHTML=`<div class="E"><div class="ET">הפקדות חודשיות</div><div class="FG">${Object.entries(S.salDeps||{}).map(([c,v])=>`<div class="FR"><label class="FL">${sh(c)}</label><input type="number" class="FI" data-sd="${c}" value="${v}"></div>`).join('')}</div><div class="FA"><button class="B Ba" onclick="document.querySelectorAll('[data-sd]').forEach(i=>S.salDeps[i.dataset.sd]=+i.value||0);save()">💾</button></div></div>
+  <div class="E"><div class="ET">ייצוא/ייבוא</div><div style="display:flex;gap:5px"><button class="B" onclick="let b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='finboard.json';a.click()">📤</button><button class="B" onclick="$('impI').click()">📥</button><input type="file" id="impI" accept=".json" style="display:none" onchange="let r=new FileReader();r.onload=e=>{try{S=JSON.parse(e.target.result);save()}catch(x){alert(x)}};r.readAsText(this.files[0])"></div></div>`}
+
+async function resetAll(){if(!uid)return;await db.collection('users').doc(uid).collection('data').doc('main').delete();S=defaultState();await cloudSave();$('rstM').classList.remove('op');renderCurrent()}
+
+function togTh(){S.theme=document.body.dataset.theme==='dark'?'light':'dark';document.body.dataset.theme=S.theme;$('thB').textContent=S.theme==='dark'?'🌙':'☀️';save()}
+
+const pages={dash:renderDash,biz:renderBiz,tax:renderTax,entry:renderEntry,acct:renderAcct,transfer:renderTr,set:renderSet};
+document.querySelectorAll('.N button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('.N button').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.P').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('p-'+b.dataset.t).classList.add('on');curTab=b.dataset.t;pages[curTab]()}});
+</script>
+</body>
+</html>
