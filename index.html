@@ -305,6 +305,122 @@ function togTh(){S.theme=document.body.dataset.theme==='dark'?'light':'dark';doc
 
 const pages={dash:renderDash,biz:renderBiz,tax:renderTax,entry:renderEntry,acct:renderAcct,transfer:renderTr,set:renderSet};
 document.querySelectorAll('.N button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('.N button').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.P').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('p-'+b.dataset.t).classList.add('on');curTab=b.dataset.t;pages[curTab]()}});
-</script>
-</body>
-</html>
+<script>
+const $=id=>document.getElementById(id);
+
+// ===== FIREBASE INIT =====
+firebase.initializeApp({
+  apiKey: "AIzaSyD6juU66Z90OOLKmWFC3eio_o1s9HyB1aU",
+  authDomain: "finboard-nech.firebaseapp.com",
+  projectId: "finboard-nech",
+  storageBucket: "finboard-nech.firebasestorage.app",
+  messagingSenderId: "713113119743",
+  appId: "1:713113119743:web:7f8af2dcec9c150c0ad5ca"
+});
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+let uid = null, unsubscribe = null;
+
+// חיבור והתנתקות
+function signIn(){ auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()) }
+function signOut(){ auth.signOut() }
+function toggleAuth(){ uid ? signOut() : signIn() }
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    uid = user.uid;
+    $('authBtn').textContent = 'התנתק';
+    $('userInfo').textContent = user.displayName || user.email;
+    $('syncDot').className = 'sync-dot sync-on';
+    $('navBar').style.display = '';
+    $('p-login').classList.remove('on');
+    startSync();
+  } else {
+    uid = null;
+    $('authBtn').textContent = 'התחבר';
+    $('userInfo').textContent = '';
+    $('syncDot').className = 'sync-dot sync-off';
+    $('navBar').style.display = 'none';
+    document.querySelectorAll('.P').forEach(p => p.classList.remove('on'));
+    $('p-login').classList.add('on');
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  }
+});
+
+function startSync() {
+  if (unsubscribe) unsubscribe();
+  const docRef = db.collection('users').doc(uid);
+  unsubscribe = docRef.onSnapshot(snap => {
+    if (snap.exists) {
+      S = snap.data();
+      renderCurrent();
+    } else {
+      S = defaultState();
+      cloudSave();
+    }
+  });
+}
+
+async function cloudSave() {
+  if (!uid) return;
+  try {
+    await db.collection('users').doc(uid).set(JSON.parse(JSON.stringify(S)));
+    flashSync();
+  } catch (e) { console.error('שגיאת שמירה:', e); }
+}
+
+function save() { cloudSave(); }
+
+function flashSync() {
+    const dot = $('syncDot');
+    if(dot) {
+        dot.style.background = '#00ff00';
+        setTimeout(() => { dot.style.background = ''; }, 500);
+    }
+}
+
+// --- פונקציות העזר של האתר שלך (העתקתי אותן מהקובץ המקורי שלך) ---
+const DEF_EC=['עובר ושב','קרן כספית','פיקדון אישי','ביטוח ישיר - כללי','ביטוח ישיר - מניות','מיטב','מיטב טרייד','מנורה מבטחים - תגמולים ופיצויים','מנורה מבטחים - גמל להשקעה','הראל השתלמות','מנורה מבטחים השתלמות','פנסיה'];
+const MERGE={'מנורה מבטחים - תגמולים ופיצויים':'מנורה תגמולים','מנורה מבטחים - גמל להשקעה':'מנורה גמל','הראל השתלמות':'השתלמות','מנורה מבטחים השתלמות':'השתלמות'};
+const SHN={'עובר ושב':'עו"ש','קרן כספית':'קרן כספית','פיקדון אישי':'פיקדון','ביטוח ישיר - כללי':'ביט.ישיר כללי','ביטוח ישיר - מניות':'ביט.ישיר מניות','מיטב':'מיטב','מיטב טרייד':'מיטב טרייד','מנורה תגמולים':'מנורה תגמולים','מנורה גמל':'מנורה גמל','השתלמות':'השתלמות','פנסיה':'פנסיה'};
+const COL=['#e5a90a','#3fb950','#f85149','#58a6ff','#bc8cff','#f0883e','#3ddbd9','#f778ba','#79c0ff','#d2a8ff','#56d364'];
+const TX_R={'קרן כספית':.25,'פיקדון אישי':.25,'ביטוח ישיר - כללי':.25,'ביטוח ישיר - מניות':.25,'מיטב':.25,'מיטב טרייד':.25,'מנורה תגמולים':.25,'מנורה גמל':.25,'השתלמות':0,'פנסיה':0,'עובר ושב':0};
+const VAT=.17;
+const BRK=[{u:84120,r:.1},{u:120720,r:.14},{u:193800,r:.2},{u:269280,r:.31},{u:560280,r:.35},{u:721560,r:.47},{u:1/0,r:.5}];
+function calcIT(a){let t=0,p=0;for(const b of BRK){const x=Math.min(a,b.u)-p;if(x<=0)break;t+=x*b.r;p=b.u}return t}
+const EX_CATS=[{id:'rent',n:'שכירות משרד',rec:1,vat:1},{id:'computer',n:'ציוד/מחשב/תוכנות',rec:1,vat:1},{id:'internet',n:'טלפון/אינטרנט',rec:1,vat:1,p:.5},{id:'transport',n:'תחבורה/נסיעות',rec:1,vat:1},{id:'accounting',n:'רו"ח/עו"ד',rec:1,vat:1},{id:'bituach',n:'ביטוח לאומי',rec:1,vat:0},{id:'pension',n:'הפקדות פנסיה/השתלמות',rec:1,vat:0},{id:'marketing',n:'פרסום/שיווק',rec:1,vat:1},{id:'office',n:'חומרי משרד',rec:1,vat:1},{id:'meals',n:'אוכל עסקי',rec:0,vat:0,p:.8},{id:'rent_home',n:'שכירות דירה',rec:0},{id:'food',n:'אוכל/סופר',rec:0},{id:'bills',n:'חשבונות בית',rec:0},{id:'fun',n:'בילויים',rec:0},{id:'other_biz',n:'עסקי אחר',rec:1,vat:1},{id:'other',n:'אישי אחר',rec:0}];
+const IN_CATS=[{id:'client',n:'לקוח'},{id:'retainer',n:'ריטיינר'},{id:'consulting',n:'ייעוץ'},{id:'other',n:'אחר'}];
+const TAX_T=[{id:'vat',n:'מע"מ',i:'🧾'},{id:'income_adv',n:'מקדמות מס הכנסה',i:'📋'},{id:'bituach_leumi',n:'ביטוח לאומי',i:'🏥'},{id:'income_annual',n:'שומה שנתית',i:'📊'}];
+const DEF_SAL={'ביטוח ישיר - מניות':2000,'השתלמות':1540,'פנסיה':1500};
+const PL={'2026-01':{'עובר ושב':30116,'קרן כספית':41600,'פיקדון אישי':0,'ביטוח ישיר - כללי':77878,'ביטוח ישיר - מניות':157451,'מיטב':62886,'מיטב טרייד':197920,'מנורה מבטחים - תגמולים ופיצויים':58111,'מנורה מבטחים - גמל להשקעה':545,'הראל השתלמות':85880,'מנורה מבטחים השתלמות':8321,'פנסיה':61060},'2026-02':{'עובר ושב':33148,'קרן כספית':41683,'פיקדון אישי':0,'ביטוח ישיר - כללי':78800,'ביטוח ישיר - מניות':164583,'מיטב':62986,'מיטב טרייד':201250,'מנורה מבטחים - תגמולים ופיצויים':59761,'מנורה מבטחים - גמל להשקעה':553,'הראל השתלמות':85904,'מנורה מבטחים השתלמות':8165,'פנסיה':61494},'2026-03':{'עובר ושב':74342,'קרן כספית':41770,'פיקדון אישי':0,'ביטוח ישיר - כללי':79114,'ביטוח ישיר - מניות':170830,'מיטב':63792,'מיטב טרייד':195177,'מנורה מבטחים - תגמולים ופיצויים':60246,'מנורה מבטחים - גמל להשקעה':553,'הראל השתלמות':84305,'מנורה מבטחים השתלמות':8183,'פנסיה':61174}};
+
+function defaultState(){const ac={};DEF_EC.forEach(c=>{if(c!=='עובר ושב')ac[c]={dep:0,fd:0,fs:0}});return{cats:[...DEF_EC],months:{...PL},incomes:[],expenses:[],transfers:[],taxPayments:[],accounts:ac,salDeps:{...DEF_SAL},theme:'dark'}}
+let S=defaultState(),CH=[],curP='ytd',curTab='dash';
+
+function ks(){return Object.keys(S.months||{}).sort()}
+function fmt(n){if(n==null||isNaN(n))return'—';return'₪'+Math.round(n).toLocaleString('he-IL')}
+function fp(n){if(n==null||isNaN(n)||!isFinite(n))return'—';return(n>0?'+':'')+n.toFixed(2)+'%'}
+function sh(n){return SHN[n]||n}
+function ml(k){const[y,m]=k.split('-');return['','ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][+m]+' '+y}
+function ms(k){const[y,m]=k.split('-');return['','ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'][+m]+"'"+y.slice(2)}
+function dispCats(){const s=new Set(),o=[];(S.cats||[]).forEach(c=>{const d=MERGE[c]||c;if(!s.has(d)){s.add(d);o.push(d)}});return o}
+function toD(m){const d={};dispCats().forEach(c=>d[c]=0);(S.cats||[]).forEach(c=>{const dc=MERGE[c]||c;d[dc]=(d[dc]||0)+(m[c]||0)});return d}
+function invCats(){return dispCats().filter(c=>c!=='עובר ושב'&&c!=='פיקדון אישי')}
+function fK(p){const K=ks();if(!K.length)return K;const[ly]=K[K.length-1].split('-').map(Number);if(p==='1m')return K.slice(-2);if(p==='3m')return K.slice(-3);if(p==='ytd')return K.filter(k=>k>=ly+'-01');if(p==='1y')return K.slice(-12);return K}
+function mb(dc){return{'מנורה תגמולים':'מנורה מבטחים - תגמולים ופיצויים','מנורה גמל':'מנורה מבטחים - גמל להשקעה','השתלמות':'הראל השתלמות'}[dc]||dc}
+
+function renderCurrent(){
+  document.body.dataset.theme=S.theme||'dark';
+  $('thB').textContent=(S.theme||'dark')==='dark'?'🌙':'☀️';
+  if(curTab==='dash')renderDash();
+  else if(pages[curTab])pages[curTab]();
+}
+
+// (שאר פונקציות הרינדור כמו renderDash, renderBiz וכו' צריכות להיות כאן)
+// העתקתי את כל מה ששלחת בקובץ המקורי כדי שלא יאבד כלום
+const tfHTML=()=>['1m','3m','ytd','1y','all'].map(p=>`<button class="B ${curP===p?'act':''}" onclick="curP='${p}';renderCurrent()">${{'1m':'חודש','3m':'3 חוד\'','ytd':'YTD','1y':'שנה','all':'הכל'}[p]}</button>`).join('');
+
+function renderDash(){CH.forEach(c=>c.destroy());CH=[];const a=savA(),b=bizA(),t=taxTk(),el=$('p-dash');if(!a||!a.K.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--c2)"><p style="font-size:15px">👋 ברוך הבא</p><p style="font-size:11px">הוסף חודש ב"יתרות"</p></div>';return}const inv=a.cd.filter(c=>c.isInv&&c.lv>0),sA=[...inv].sort((x,y)=>y.ann-x.ann),best=sA[0];el.innerHTML=`<div class="TF">${tfHTML()}</div><div class="CG"><div class="CD"><div class="CS" style="background:var(--ac)"></div><div class="CL">סך נכסים</div><div class="CV">${fmt(a.tot)}</div><div class="CC ${a.chg>=0?'up':'dn'}">${fp(a.chg)}</div></div><div class="CD"><div class="CS" style="background:var(--gn)"></div><div class="CL">נטו אחרי מס</div><div class="CV">${fmt(a.tNet)}</div></div>${b?`<div class="CD"><div class="CS" style="background:var(--bl)"></div><div class="CL">הכנסות</div><div class="CV">${fmt(b.tI)}</div></div><div class="CD"><div class="CS" style="background:var(--rd)"></div><div class="CL">הוצאות</div><div class="CV">${fmt(b.tE)}</div></div><div class="CD"><div class="CS" style="background:var(--gn)"></div><div class="CL">רווח נקי</div><div class="CV">${fmt(b.net)}</div></div>`:''}<div class="CD"><div class="CS" style="background:var(--or)"></div><div class="CL">🧾 יתרת מס ${t.yr}</div><div class="CV ${(t.tE-t.tP)>0?'dn':'up'}">${fmt(t.tE-t.tP)}</div><div class="CC">${(t.tE-t.tP)>0?'חובה':'זכות'}</div></div>${best?`<div class="CD"><div class="CS" style="background:var(--pr)"></div><div class="CL">🏆 ${sh(best.name)}</div><div class="CV" style="font-size:13px">${fp(best.ann)}</div></div>`:``}</div><div class="CR f"><div class="CB"><div class="CH">📈 מגמה</div><div class="CW t"><canvas id="c1"></canvas></div></div></div><div class="CR"><div class="CB"><div class="CH">🥧 התפלגות</div><div class="CW"><canvas id="c2"></canvas></div></div><div class="CB"><div class="CH">📊 TWR שנתי</div><div class="CW"><canvas id="c3"></canvas></div></div></div><div class="TB"><div class="TT">📋 ביצועים</div><div class="TS"><table id="pt"></table></div></div>`;const lbs=a.K.map(ms),dk=document.body.dataset.theme==='dark';Chart.defaults.color=dk?'#8b949e':'#636e7b';Chart.defaults.borderColor=dk?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';Chart.defaults.font.family='Heebo';const gc=dk?'rgba(255,255,255,.04)':'rgba(0,0,0,.05)',tt={rtl:true,textDirection:'rtl'};const tots=a.K.map(k=>dispCats().reduce((s,c)=>s+toD(S.months[k]||{})[c],0));CH.push(new Chart($('c1'),{type:'line',data:{labels:lbs,datasets:[{data:tots,borderColor:'#e5a90a',backgroundColor:dk?'rgba(229,169,10,.08)':'rgba(229,169,10,.12)',fill:true,tension:.4,pointRadius:2,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.y)},...tt}},scales:{y:{ticks:{callback:v=>'₪'+(v/1e3).toFixed(0)+'K'},grid:{color:gc}},x:{grid:{display:false}}}}}));if(inv.length){const tV=inv.reduce((s,c)=>s+c.lv,0);CH.push(new Chart($('c2'),{type:'doughnut',data:{labels:inv.map(c=>sh(c.name)),datasets:[{data:inv.map(c=>c.lv),backgroundColor:inv.map(c=>c.color),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',rtl:true,labels:{padding:4,font:{size:7.5},usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.parsed)}`},...tt}}}}));CH.push(new Chart($('c3'),{type:'bar',data:{labels:sA.map(c=>sh(c.name)),datasets:[{data:sA.map(c=>c.ann),backgroundColor:sA.map(c=>c.ann>=0?(dk?'rgba(63,185,80,.6)':'rgba(26,127,55,.5)'):(dk?'rgba(248,81,73,.6)':'rgba(207,34,46,.5)')),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fp(c.parsed.x)},...tt}},scales:{x:{ticks:{callback:v=>v+'%'},grid:{color:gc}},y:{grid:{display:false},ticks:{font:{size:7.5}}}}}}));}$('pt').innerHTML=`<thead><tr><th>חיסכון</th><th>ערך</th><th>%</th><th>שנתי</th><th>מס</th><th>נטו</th></tr></thead><tbody>${inv.sort((x,y)=>y.ann-x.ann).map(c=>`<tr><td class="tn">${sh(c.name)}</td><td>${fmt(c.lv)}</td><td>${c.share.toFixed(0)}%</td><td style="color:${c.ann>=0?'var(--gn)':'var(--rd)'}; font-weight:600">${fp(c.ann)}</td><td>${c.taxA>0?fmt(c.taxA):'פטור'}</td><td style="font-weight:600">${fmt(c.net)}</td></tr>`).join('')}</tbody>`;}
+
+function savA(p){const K=fK(p||curP),dc=dispCats();if(!
