@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1217">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FinBoard">
+<title>FinBoard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23E3B04B'/%3E%3Cpath d='M20 46V22h14a8 8 0 0 1 8 8v8M30 42V30M44 18v24a8 8 0 0 1-8 8' stroke='%230E1217' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--f:'IBM Plex Sans Hebrew','Heebo',system-ui,-apple-system,sans-serif;--r:14px;--rs:9px}
+[data-theme=dark]{--bg:#0E1217;--s1:#151B23;--s2:#1C2430;--s3:#263243;--ln:#2A3544;--t1:#E8EDF3;--t2:#A6B1C0;--t3:#717D8D;--acc:#E3B04B;--accs:rgba(227,176,75,.14);--pos:#4CC38A;--neg:#F07070;--dep:#8A96F5;--info:#6AA8F0;--ov:rgba(4,7,10,.66)}
+[data-theme=light]{--bg:#F5F6F8;--s1:#FFFFFF;--s2:#F0F2F5;--s3:#E3E8EE;--ln:#DCE1E7;--t1:#16202B;--t2:#4E5A69;--t3:#7F8B9B;--acc:#A3700F;--accs:rgba(163,112,15,.1);--pos:#1C8653;--neg:#C93C3C;--dep:#4B59D3;--info:#2C6EC0;--ov:rgba(20,26,34,.45)}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--f);background:var(--bg);color:var(--t1);font-size:14px;line-height:1.55;min-height:100vh;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+a{color:var(--info)}
+.hd{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:8px;padding:10px 18px;padding-top:calc(10px + env(safe-area-inset-top));background:var(--bg);border-bottom:1px solid var(--ln)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px;letter-spacing:-.2px}
+.mark{width:30px;height:30px;border-radius:9px;background:var(--acc);color:#14181F;display:grid;place-items:center;font-weight:700;font-size:16px}
+.sync{width:8px;height:8px;border-radius:50%;background:var(--t3);margin-inline-start:2px}.sync.on{background:var(--pos)}.sync.busy{background:var(--acc)}.sync.off{background:var(--neg)}
+.hd .sp{flex:1}
+.ib{width:36px;height:36px;border-radius:50%;border:1px solid var(--ln);background:var(--s1);display:grid;place-items:center;cursor:pointer;font-size:15px}
+.ib:hover{background:var(--s2)}.ib.on{background:var(--accs);border-color:var(--acc)}
+.nav{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid var(--ln);overflow-x:auto;background:var(--bg)}
+.nav button{border:0;background:none;padding:11px 14px;color:var(--t2);cursor:pointer;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.nav button.on{color:var(--t1);border-bottom-color:var(--acc);font-weight:600}
+.bnav{display:none}
+main{max-width:1180px;margin:0 auto;padding:18px 18px 120px}
+.pg{display:none}.pg.on{display:block}
+.pn{background:var(--s1);border:1px solid var(--ln);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.pn h2{font-size:16px;font-weight:600;margin-bottom:2px}
+.sub{color:var(--t2);font-size:13px;margin-bottom:12px}
+.ttl{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.ttl h1{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.muted{color:var(--t2)}.dim{color:var(--t3)}.small{font-size:12.5px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+.hero{padding:22px 22px 18px}
+.hero .lbl{color:var(--t2);font-size:13.5px}
+.hero .big{font-size:42px;font-weight:700;letter-spacing:-1.2px;line-height:1.15;margin:6px 0 2px}
+.split{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--s3);margin:16px 0 10px}
+.split i{display:block;height:100%}
+.legend{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:13px;color:var(--t2)}
+.legend b{color:var(--t1);font-weight:600;margin-inline-start:4px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:7px;vertical-align:-1px}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ln);border-radius:var(--r);background:var(--s1);margin-bottom:14px}
+.strip>div{padding:14px 16px;border-inline-start:1px solid var(--ln);min-width:0}
+.strip>div:first-child{border-inline-start:0}
+.strip .k{font-size:12.5px;color:var(--t2)}.strip .v{font-size:20px;font-weight:600;margin-top:2px}.strip .n{font-size:12px;color:var(--t3);margin-top:1px}
+.al{display:flex;gap:12px;align-items:center;padding:11px 14px;border-radius:var(--rs);background:var(--s2);margin-bottom:8px}
+.al .ic{font-size:17px}.al .tx{flex:1;font-size:13.5px;min-width:0}
+.al.warn{background:var(--accs)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-weight:500;color:var(--t3);font-size:12px;text-align:right;padding:8px 10px;border-bottom:1px solid var(--ln);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--ln);white-space:nowrap}
+tr.cl{cursor:pointer}tr.cl:hover td{background:var(--s2)}
+tr.tot td{font-weight:600;border-bottom:0;border-top:2px solid var(--ln)}
+.fl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fl>label{font-size:12.5px;color:var(--t2);font-weight:500}
+.in{width:100%;padding:9px 11px;border:1px solid var(--ln);border-radius:var(--rs);background:var(--bg);font-size:14px;min-height:40px}
+.in:focus{border-color:var(--acc);outline:none}
+input.num{direction:ltr;text-align:right}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.b{padding:9px 15px;border-radius:var(--rs);border:1px solid var(--ln);background:var(--s1);cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap;min-height:40px}
+.b:hover{background:var(--s2)}
+.bp{background:var(--acc);border-color:var(--acc);color:#14181F;font-weight:600}
+.bp:hover{background:var(--acc);filter:brightness(1.07)}
+.bd{color:var(--neg)}
+.bs{padding:5px 10px;font-size:12.5px;min-height:32px}
+.b:disabled{opacity:.5;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--ln);border-radius:var(--rs);overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--s1);padding:7px 12px;cursor:pointer;font-size:13px;color:var(--t2)}
+.seg button.on{background:var(--s3);color:var(--t1);font-weight:600}
+.tg{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;background:var(--s2);color:var(--t2);white-space:nowrap}
+.tg.biz{background:rgba(76,195,138,.14);color:var(--pos)}
+.tg.dep{background:rgba(138,150,245,.16);color:var(--dep)}
+.tg.tax{background:var(--accs);color:var(--acc)}
+.tg.bad{background:rgba(240,112,112,.14);color:var(--neg)}
+.li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--ln)}
+.li:last-child{border-bottom:0}
+.li .d{color:var(--t3);font-size:12.5px;min-width:64px}
+.li .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .a{font-weight:600;white-space:nowrap}
+.xb{border:0;background:none;color:var(--t3);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:13px}
+.xb:hover{background:var(--s2);color:var(--t1)}
+.bar{height:8px;border-radius:4px;background:var(--s3);overflow:hidden}.bar i{display:block;height:100%;background:var(--pos)}
+.bar.over i{background:var(--neg)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--ln);font-size:13.5px}
+.kv:last-child{border-bottom:0}.kv span:first-child{color:var(--t2)}
+.kv.strong{font-weight:600}.kv.strong span:first-child{color:var(--t1)}
+.mo{position:fixed;inset:0;background:var(--ov);z-index:200;display:none;align-items:center;justify-content:center;padding:14px}
+.mo.on{display:flex}
+.md{background:var(--s1);border:1px solid var(--ln);border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto;padding:20px}
+.md.wide{max-width:1000px}
+.md h3{font-size:18px;margin-bottom:6px}
+.mf{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+#toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--t1);color:var(--bg);padding:11px 16px;border-radius:10px;font-size:13.5px;z-index:500;display:none;align-items:center;gap:14px;max-width:92vw}
+#toast.on{display:flex}
+#toast button{background:none;border:0;color:var(--acc);font-weight:700;cursor:pointer}
+.fab{position:fixed;left:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--acc);color:#14181F;border:0;font-size:30px;line-height:1;cursor:pointer;z-index:60;box-shadow:0 8px 22px rgba(0,0,0,.28)}
+body.priv .money{filter:blur(7px);user-select:none}
+.ov{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+.ov.on{display:flex}
+.spin{width:34px;height:34px;border:3px solid var(--ln);border-top-color:var(--acc);border-radius:50%;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.login{max-width:380px}
+.login h1{font-size:32px;letter-spacing:-.6px}
+.gbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 22px;border-radius:12px;border:1px solid var(--ln);background:var(--s1);cursor:pointer;font-weight:600;font-size:15px}
+.steps{display:flex;gap:6px;margin:6px 0 16px}.steps i{flex:1;height:4px;border-radius:2px;background:var(--s3)}.steps i.on{background:var(--acc)}
+.chart{position:relative;height:260px}.chart.s{height:220px}
+.empty{text-align:center;padding:36px 16px;color:var(--t2)}
+.pick{max-height:56vh;overflow:auto;margin-top:8px}
+.pick button{display:block;width:100%;text-align:right;border:0;background:none;padding:9px 10px;border-radius:8px;cursor:pointer}
+.pick button:hover{background:var(--s2)}.pick .gh{font-size:12px;color:var(--t3);padding:10px 10px 4px}
+pre.code{direction:ltr;text-align:left;background:var(--bg);border:1px solid var(--ln);border-radius:var(--rs);padding:12px;font-size:12px;overflow:auto;white-space:pre}
+@media (max-width:760px){
+ .nav{display:none}
+ .bnav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:55;background:var(--s1);border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom)}
+ .bnav button{flex:1;border:0;background:none;padding:8px 2px 7px;font-size:11px;color:var(--t2);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
+ .bnav button span{font-size:19px;line-height:1.2}
+ .bnav button.on{color:var(--acc);font-weight:600}
+ .fab{bottom:calc(74px + env(safe-area-inset-bottom));left:16px}
+ main{padding:14px 12px 160px}
+ .g2,.g3{grid-template-columns:1fr}
+ .strip{grid-template-columns:1fr 1fr}.strip>div:nth-child(3){border-inline-start:0}.strip>div:nth-child(n+3){border-top:1px solid var(--ln)}
+ .hero{padding:18px}.hero .big{font-size:34px}
+ .pn{padding:15px}
+ .fg{grid-template-columns:1fr 1fr}
+ .md{padding:16px}
+ #toast{bottom:calc(140px + env(safe-area-inset-bottom))}
+ .hide-m{display:none}
+}
+</style>
+</head>
+<body data-theme="dark">
+<div class="ov on" id="loader"><div class="spin"></div><div class="muted" id="loaderMsg">טוען את FinBoard…</div></div>
+<div class="ov" id="loginOv"><div class="login">
+ <div class="mark" style="width:58px;height:58px;font-size:30px;margin:0 auto 12px">₪</div>
+ <h1>FinBoard</h1>
+ <p class="muted" style="margin:6px 0 20px">החסכונות, ההוצאות והמס של העסק, במקום אחד.</p>
+ <button class="gbtn" onclick="signIn()"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>כניסה עם Google</button>
+ <p id="loginMsg" class="small neg" style="margin-top:14px"></p>
+</div></div>
+<div class="ov" id="lockOv"><div class="login">
+ <div class="mark" style="width:52px;height:52px;font-size:26px;margin:0 auto 12px">₪</div>
+ <h1 style="font-size:24px">FinBoard נעול</h1>
+ <p class="muted" style="margin:6px 0 16px" id="lockMsg">נעלתי אחרי זמן ללא שימוש.</p>
+ <div id="lockPinWrap" style="margin-bottom:12px" hidden><input class="in num" id="lockPin" type="password" inputmode="numeric" maxlength="8" placeholder="קוד נעילה" style="max-width:200px;text-align:center;direction:ltr" onkeydown="if(event.key==='Enter')unlock()"></div>
+ <div class="row" style="justify-content:center"><button class="b bp" onclick="unlock()">פתיחה</button><button class="b" onclick="signOutNow()">יציאה מהחשבון</button></div>
+ <p id="lockErr" class="small neg" style="margin-top:10px"></p>
+</div></div>
+<header class="hd" id="hd" hidden>
+ <div class="brand"><div class="mark">₪</div>FinBoard<span class="sync" id="sync" title="מצב סנכרון"></span></div>
+ <div class="sp"></div>
+ <button class="ib" id="privBtn" onclick="togPriv()" title="הסתרת סכומים" aria-label="הסתרת סכומים">👁</button>
+ <button class="ib" id="thBtn" onclick="togTheme()" title="מצב בהיר או כהה" aria-label="מצב בהיר או כהה">☾</button>
+ <button class="ib" onclick="lockNow()" title="נעילה" aria-label="נעילה">🔒</button>
+</header>
+<nav class="nav" id="nav" hidden>
+ <button data-p="dash" onclick="go('dash')">סקירה</button>
+ <button data-p="sav" onclick="go('sav')">חסכונות</button>
+ <button data-p="tx" onclick="go('tx')">תנועות</button>
+ <button data-p="tax" onclick="go('tax')">מס</button>
+ <button data-p="set" onclick="go('set')">הגדרות</button>
+</nav>
+<main id="main" hidden>
+ <section class="pg" id="p-dash"></section>
+ <section class="pg" id="p-sav"></section>
+ <section class="pg" id="p-tx"></section>
+ <section class="pg" id="p-tax"></section>
+ <section class="pg" id="p-set"></section>
+</main>
+<nav class="bnav" id="bnav" hidden>
+ <button data-p="dash" onclick="go('dash')"><span>◎</span>סקירה</button>
+ <button data-p="sav" onclick="go('sav')"><span>↗</span>חסכונות</button>
+ <button data-p="tx" onclick="go('tx')"><span>☰</span>תנועות</button>
+ <button data-p="tax" onclick="go('tax')"><span>§</span>מס</button>
+ <button data-p="set" onclick="go('set')"><span>⚙</span>הגדרות</button>
+</nav>
+<button class="fab" id="fab" onclick="quickAdd()" aria-label="הוספת תנועה" hidden>+</button>
+<div class="mo" id="mo" onclick="if(event.target===this&&!this.dataset.sticky)closeMo()"><div class="md" id="md" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status"></div>
+<script>
+'use strict';
+/* ============ כלים בסיסיים ============ */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const Rn=n=>Math.round(n||0);
+const nf=n=>Math.abs(Rn(n)).toLocaleString('he-IL');
+function fmt(n){if(n==null||!isFinite(n))return'<span class="dim">—</span>';return'<span class="money">'+(n<0?'−':'')+'₪'+nf(n)+'</span>'}
+function fmtS(n){if(n==null||!isFinite(n))return'<span class="dim">—</span>';return'<span class="money">'+(Rn(n)>0?'+':Rn(n)<0?'−':'')+'₪'+nf(n)+'</span>'}
+function pct(n,d){if(n==null||!isFinite(n))return'—';d=d==null?1:d;const v=n*100;return(v>0.05?'+':v<-0.05?'−':'')+Math.abs(v).toFixed(d)+'%'}
+const cls=n=>n>0.5?'pos':n<-0.5?'neg':'';
+const MN=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const MS=['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','יולי','אוג׳','ספט׳','אוק׳','נוב׳','דצמ׳'];
+const mLabel=m=>m?MN[+m.slice(5,7)-1]+' '+m.slice(0,4):'';
+const mShort=m=>MS[+m.slice(5,7)-1]+' '+m.slice(2,4);
+function addM(m,k){let y=+m.slice(0,4),mm=+m.slice(5,7)+k;while(mm>12){mm-=12;y++}while(mm<1){mm+=12;y--}return y+'-'+String(mm).padStart(2,'0')}
+const mDiff=(a,b)=>(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7));
+function todayS(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const curM=()=>todayS().slice(0,7);
+const dLabel=d=>{const p=d.split('-');return +p[2]+'.'+(+p[1])+'.'+p[0].slice(2)};
+const uid8=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const norm=s=>String(s||'').toLowerCase().replace(/["'״׳`]/g,'').replace(/\s+/g,' ').trim();
+const hashRow=(d,signed,desc)=>d+'|'+Math.round(signed*100)+'|'+norm(desc).slice(0,30);
+const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
+const clone=o=>JSON.parse(JSON.stringify(o));
+function shortHash(s){let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h).toString(36)}
+function num(v){if(typeof v==='number')return v;const s=String(v==null?'':v).replace(/[^\d.\-]/g,'');if(!s||s==='-'||s==='.')return NaN;return parseFloat(s)}
+const isMonth=m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m||'');
+const isDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'');
+
+/* ============ חוקי מס לפי שנה (עוסק מורשה) ============ */
+/* מקורות: מדרגות 2026 לפי תיקון 288 (ריווח מדרגות 20% ו-31%, רטרואקטיבי מ-1.1.2026); ערך נקודת זיכוי 2,904 ₪ לשנה;
+   ביטוח לאומי לעצמאי: 2024-2025: 2.87%+3.10% / 12.83%+5.00%; 2026: 4.47%+3.23% / 12.83%+5.17% (תיקון 252) */
+const TAXP={
+ 2024:{vat:.17,br:[84120,120720,193800,269280,560280,721560],cp:2904,blT:7522,blC:49030,lo:[.0287,.031],hi:[.1283,.05],aw:12536},
+ 2025:{vat:.18,br:[84120,120720,193800,269280,560280,721560],cp:2904,blT:7522,blC:50695,lo:[.0287,.031],hi:[.1283,.05],aw:13316},
+ 2026:{vat:.18,br:[84120,120720,228000,301200,560280,721560],cp:2904,blT:7703,blC:51910,lo:[.0447,.0323],hi:[.1283,.0517],aw:13769}
+};
+const RATES=[.10,.14,.20,.31,.35,.47,.50];
+const PEN_CAP=232800, HISH_CAP=293397;
+function TP(y){y=+y;if(TAXP[y])return TAXP[y];return y<2024?Object.assign({},TAXP[2024],{vat:.17}):TAXP[2026]}
+const vatRate=d=>String(d)<'2025-01'?.17:.18;
+function itBr(inc,y){if(!(inc>0))return 0;const b=TP(y).br;let t=0,p=0;for(let i=0;i<RATES.length;i++){const top=i<b.length?b[i]:Infinity;const x=Math.min(inc,top)-p;if(x<=0)break;t+=x*RATES[i];p=top}return t}
+function blCalc(inc,y){const P=TP(y),T=P.blT*12,C=P.blC*12;if(!(inc>0))return{ni:0,he:0,t:0};const lo=Math.min(inc,T),hi=Math.max(0,Math.min(inc,C)-T);const ni=lo*P.lo[0]+hi*P.hi[0],he=lo*P.lo[1]+hi*P.hi[1];return{ni,he,t:ni+he}}
+function penMin(inc,y){const aw=TP(y).aw*12,half=aw/2;return .0445*Math.min(inc,half)+.1255*Math.max(0,Math.min(inc,aw)-half)}
+
+/* ============ קטגוריות ============ */
+/* t: b=עסקי, h=בית (חלק יחסי לחדר עבודה), s=הטבת מס מיוחדת, p=אישי | d=אחוז מוכר | v=אחוז מע"מ שאפשר לקזז | y=שנות פחת */
+const EXP=[
+ {id:'sw_abroad',n:'תוכנות ומנויים מחו"ל',t:'b',d:1,v:0},
+ {id:'sw_il',n:'תוכנות ושירותים בישראל',t:'b',d:1,v:1},
+ {id:'equip',n:'מחשבים וציוד (פחת 3 שנים)',t:'b',d:1,v:1,y:3},
+ {id:'equip_small',n:'ציוד קטן (עד 1,200 ₪)',t:'b',d:1,v:1},
+ {id:'phone',n:'טלפון ואינטרנט',t:'b',d:.8,v:.8},
+ {id:'transport_biz',n:'נסיעות עסקיות',t:'b',d:1,v:0},
+ {id:'prof',n:'רו"ח, עו"ד ויועצים',t:'b',d:1,v:1},
+ {id:'marketing',n:'פרסום ושיווק',t:'b',d:1,v:1},
+ {id:'courses',n:'השתלמויות מקצועיות',t:'b',d:1,v:1},
+ {id:'office',n:'ציוד משרדי',t:'b',d:1,v:1},
+ {id:'office_rent',n:'שכירות משרד או סטודיו',t:'b',d:1,v:1},
+ {id:'meals_biz',n:'ארוחות עסקיות מתועדות',t:'b',d:.8,v:0},
+ {id:'travel_biz',n:'נסיעות עסקיות לחו"ל',t:'b',d:1,v:0},
+ {id:'other_biz',n:'הוצאה עסקית אחרת',t:'b',d:1,v:1},
+ {id:'rent_home',n:'שכר דירה',t:'h',v:0},
+ {id:'arnona',n:'ארנונה',t:'h',v:0},
+ {id:'utilities',n:'חשמל, מים וגז',t:'h',v:1},
+ {id:'ins_disab',n:'ביטוח אובדן כושר עבודה',t:'s'},
+ {id:'ins_life',n:'ביטוח חיים',t:'s'},
+ {id:'donation',n:'תרומות (סעיף 46)',t:'s'},
+ {id:'food',n:'סופר ומזון',t:'p'},
+ {id:'eating',n:'מסעדות, קפה ומשלוחים',t:'p'},
+ {id:'transport',n:'תחבורה וחניה (אישי)',t:'p'},
+ {id:'health',n:'בריאות ופארם',t:'p'},
+ {id:'ins_health',n:'ביטוח בריאות',t:'p'},
+ {id:'clothing',n:'ביגוד והנעלה',t:'p'},
+ {id:'leisure',n:'פנאי ובילויים',t:'p'},
+ {id:'gym',n:'ספורט וכושר',t:'p'},
+ {id:'travel',n:'חופשות וטיסות',t:'p'},
+ {id:'shopping',n:'קניות לבית',t:'p'},
+ {id:'subs_personal',n:'מנויים אישיים',t:'p'},
+ {id:'gifts',n:'מתנות',t:'p'},
+ {id:'fees',n:'עמלות',t:'p'},
+ {id:'cash_out',n:'משיכת מזומן',t:'p'},
+ {id:'other',n:'אחר',t:'p'}
+];
+const INC=[{id:'client',n:'לקוח או פרויקט',biz:1},{id:'retainer',n:'עבודה קבועה',biz:1},{id:'other_biz',n:'הכנסה עסקית אחרת',biz:1},{id:'nonbiz',n:'הכנסה לא עסקית (מילואים, מתנה)',biz:0}];
+const TAXT={vat:'מע"מ',it:'מקדמת מס הכנסה',bl:'ביטוח לאומי',it_set:'שומת מס הכנסה',bl_set:'התחשבנות ביטוח לאומי'};
+const KINDS={cash:'עו"ש ומזומן',mmf:'קרן כספית',deposit:'פיקדון',broker:'תיק השקעות',gemel:'גמל להשקעה או פוליסה',hish:'קרן השתלמות',pension:'פנסיה',other:'אחר'};
+const KTHR={mmf:.015,deposit:.015,broker:.09,gemel:.07,hish:.06,pension:.06,other:.08};
+const KDEF={cash:{tax:0,liq:1},mmf:{tax:.25,liq:1},deposit:{tax:.15,liq:1},broker:{tax:.25,liq:1},gemel:{tax:.25,liq:1},hish:{tax:0,liq:0},pension:{tax:0,liq:0},other:{tax:.25,liq:1}};
+const COLORS=['#E3B04B','#4CC38A','#8A96F5','#6AA8F0','#F07070','#C792EA','#3DD6C8','#F2A65A','#A3D36C','#EE7EB4','#7FB3FF','#D0D6DE'];
+const expById=id=>EXP.find(x=>x.id===id), incById=id=>INC.find(x=>x.id===id);
+
+/* ============ כללי סיווג ברירת מחדל ============ */
+const DEF_RULES=[
+ ['לאומי ויזה','ign'],['מקס איט','ign'],['max it','ign'],['ישראכרט','ign'],['כרטיסי אשראי לישראל','ign'],['דיינרס','ign'],['אמריקן אקספרס','ign'],
+ ['מס-הכנסה החז','tax:it_set:rf'],['החזר מס','tax:it_set:rf'],['החזרי מע"מ','tax:vat:rf'],['מס הכנסה','tax:it'],['מס-הכנסה','tax:it'],['מע"מ','tax:vat'],['שע"מ','tax:vat'],
+ ['ביטוח לאומי','tax:bl','out'],['המוסד לביטוח','tax:bl','out'],['ביטוח לאומי','inc:nonbiz','in'],['מופ"ת','inc:nonbiz','in'],['מילואים','inc:nonbiz','in'],['משהב"ט','inc:nonbiz','in'],
+ ['מנורה מבטחים פנסיה','dep:pension'],['הראל פנסיה','dep:hish'],['מיטב דש','dep:mtrade'],['איי.די.איי','dep:bys_stk','out'],['מנורה חיסכון','wd:men_gemel','in'],['מנורה מבטחים-חיים','exp:ins_life'],['מנורה מבטחים חיים','exp:ins_life'],
+ ['adobe','exp:sw_abroad'],['openai','exp:sw_abroad'],['chatgpt','exp:sw_abroad'],['midjourney','exp:sw_abroad'],['suno','exp:sw_abroad'],['runway','exp:sw_abroad'],['envato','exp:sw_abroad'],['replit','exp:sw_abroad'],['avid technology','exp:sw_abroad'],['linkedin','exp:sw_abroad'],['google one','exp:sw_abroad'],['microsoft','exp:sw_abroad'],['higgsfield','exp:sw_abroad'],['anthropic','exp:sw_abroad'],['claude.ai','exp:sw_abroad'],['elevenlabs','exp:sw_abroad'],['kling','exp:sw_abroad'],['חשבונית ירוקה','exp:sw_il'],
+ ['apple.com','exp:subs_personal'],['spotify','exp:subs_personal'],['netflix','exp:subs_personal'],
+ ['רב קו','exp:transport_biz'],['רב-קו','exp:transport_biz'],['רב- פס','exp:transport_biz'],['רב פס','exp:transport_biz'],['אגד','exp:transport_biz'],['הופון','exp:transport_biz'],['רכבת','exp:transport_biz'],['מ.תחבורה','exp:transport_biz'],['moovit','exp:transport_biz'],['yango','exp:transport_biz'],
+ ['חניון','exp:transport'],['אחוזת החוף','exp:transport'],['אחוזות החוף','exp:transport'],['פנגו','exp:transport'],['נאייקס','exp:transport'],
+ ['שופרסל','exp:food'],['רמי לוי','exp:food'],['טיב טעם','exp:food'],['carrefour','exp:food'],['יוחננוף','exp:food'],['ויקטורי','exp:food'],['עוף הודו','exp:food'],['סטופמרקט','exp:food'],['טאיו','exp:food'],['סופר הארבעה','exp:food'],['סופר אלונית','exp:food'],
+ ['wolt','exp:eating'],['וולט','exp:eating'],['מקדונלד','exp:eating'],['ארומה','exp:eating'],['קפה','exp:eating'],['גלידה','exp:eating'],['פיצה','exp:eating'],['דומינוס','exp:eating'],['בורגר','exp:eating'],['שווארמה','exp:eating'],['japanika','exp:eating'],['bamboo','exp:eating'],['bretonne','exp:eating'],['kfc','exp:eating'],['מאפי','exp:eating'],['קופיקס','exp:eating'],
+ ['סופר פארם','exp:health'],['סופרפארם','exp:health'],['בית מרקחת','exp:health'],['כללית','exp:health'],
+ ['רנואר','exp:clothing'],['קסטרו','exp:clothing'],['timberland','exp:clothing'],['zara','exp:clothing'],
+ ['סינמה','exp:leisure'],['יס פלאנט','exp:leisure'],['באולינג','exp:leisure'],['לוטו','exp:leisure'],['פיס','exp:leisure'],['todaytix','exp:leisure'],
+ ['גו אקטיב','exp:gym'],
+ ['booking','exp:travel'],['airbnb','exp:travel'],['wizz','exp:travel'],['ארקיע','exp:travel'],['אל על','exp:travel'],['אייר חיפה','exp:travel'],['הולידיי','exp:travel'],['trenitalia','exp:travel'],['ryanair','exp:travel'],
+ ['איקאה','exp:shopping'],['ikea','exp:shopping'],['ksp','exp:shopping'],['מחסני חשמל','exp:shopping'],['amazon','exp:shopping'],['aliexpress','exp:shopping'],['temu','exp:shopping'],
+ ['דמי כרטיס','exp:fees'],['עמל','exp:fees'],['עיגול לכל','exp:donation'],['משיכת מזומן','exp:cash_out'],['משיכה עם קוד','exp:cash_out']
+];
+let RULES=[],VER=0;
+const merchantKey=desc=>norm(desc).replace(/[\d#*]+/g,' ').replace(/\s+/g,' ').trim().slice(0,28);
+function buildRules(){const u=((S.set&&S.set.rules)||[]).map(r=>({k:norm(r.k),t:r.t,dir:r.dir||'',u:1}));RULES=u.concat(DEF_RULES.map(r=>({k:norm(r[0]),t:r[1],dir:r[2]||'',u:0})))}
+function validTarget(t){if(!t)return false;const p=t.split(':');if(p[0]==='ign')return true;if(p[0]==='exp')return!!expById(p[1]);if(p[0]==='inc')return!!incById(p[1]);if(p[0]==='dep'||p[0]==='wd')return!!assetById(p[1]);if(p[0]==='tax')return!!TAXT[p[1]];return false}
+function matchRule(desc,signed){const n=norm(desc),mk=merchantKey(desc),dir=signed<0?'out':'in';let best=null;for(const r of RULES){if(!r.k||(n.indexOf(r.k)<0&&mk.indexOf(r.k)<0))continue;if(r.dir&&r.dir!==dir)continue;if(!validTarget(r.t))continue;const sc=(r.u?1000:0)+r.k.length;if(!best||sc>best.s)best={s:sc,t:r.t}}return best?best.t:null}
+function tLabel(t){if(!t)return'לא מסווג';const p=t.split(':');if(p[0]==='ign')return'לא לייבא (חיוב כרטיס או פנימי)';if(p[0]==='exp')return(expById(p[1])||{n:p[1]}).n;if(p[0]==='inc')return'הכנסה: '+(incById(p[1])||{n:p[1]}).n;if(p[0]==='dep')return'הפקדה ל'+((assetById(p[1])||{}).n||p[1]);if(p[0]==='wd')return'משיכה מ'+((assetById(p[1])||{}).n||p[1]);if(p[0]==='tax')return(p[2]==='rf'?'החזר: ':'תשלום: ')+TAXT[p[1]];return t}
+function taxPeriod(tt,d){const m=d.slice(0,7),mo=+m.slice(5);if(tt==='vat'||tt==='it')return{p:mo%2===1?addM(m,-2):addM(m,-1),pm:2};if(tt==='bl')return{p:m,pm:1};return{p:(+m.slice(0,4)-1)+'-01',pm:12}}
+function pLabel(t){if(!t.p)return'';if(t.pm===2)return MS[+t.p.slice(5)-1]+'–'+MS[+addM(t.p,1).slice(5)-1]+' '+t.p.slice(2,4);if(t.pm===12)return'שנת '+t.p.slice(0,4);return mShort(t.p)}
+
+/* ============ מצב, חיבור לענן וכניסה ============ */
+const S={set:null,bal:{m:{}},tx:{},txDocs:{}};
+let IX={flows:{},flowList:{},months:[],revM:{},dedM:{},firstInc:null};
+let auth=null,db=null,U=null,unsubs=[],READY=false,MIGRATING=false,MIG_REPORT=null,SHOWN=false,BK_DONE=false,PENDING=false;
+const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+window.addEventListener('error',e=>{if(!READY&&$('loader').classList.contains('on'))$('loaderMsg').innerHTML='משהו נכשל בטעינה.<br><span class="small dim">'+esc(e.message||'')+'</span>'});
+setTimeout(()=>{if(!U&&$('loader').classList.contains('on'))showLogin('החיבור לשרת איטי. אם זה נמשך, בדוק את החיבור לאינטרנט.')},9000);
+try{
+ firebase.initializeApp({apiKey:"AIzaSyD6juU66Z90OOLKmWFC3eio_o1s9HyB1aU",authDomain:"finboard-nech.firebaseapp.com",projectId:"finboard-nech",storageBucket:"finboard-nech.firebasestorage.app",messagingSenderId:"713113119743",appId:"1:713113119743:web:7f8af2dcec9c150c0ad5ca"});
+ auth=firebase.auth();db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+}catch(e){console.error('firebase init',e)}
+function showLogin(msg){$('loader').classList.remove('on');$('lockOv').classList.remove('on');$('loginOv').classList.add('on');if(msg)$('loginMsg').textContent=msg;['hd','nav','main','bnav','fab'].forEach(i=>$(i).hidden=true);document.body.classList.remove('app');SHOWN=false;READY=false}
+function signIn(){$('loginMsg').textContent='';if(!auth){$('loginMsg').textContent='שירות הכניסה של Google לא נטען. רענן את הדף.';return}
+ const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});const fail=e=>{$('loginMsg').textContent='הכניסה נכשלה: '+((e&&(e.message||e.code))||'')};
+ if(isMobile){auth.signInWithRedirect(p).catch(fail);return}
+ auth.signInWithPopup(p).catch(e=>{if(e&&/popup-blocked|cancelled-popup|not-supported/.test(e.code||''))auth.signInWithRedirect(p).catch(fail);else if(e&&e.code!=='auth/popup-closed-by-user')fail(e)})}
+function signOutNow(){$('lockOv').classList.remove('on');LOCKED=false;if(auth)auth.signOut()}
+if(auth){auth.getRedirectResult().catch(e=>{$('loginMsg').textContent='הכניסה נכשלה: '+(e.message||e.code)});auth.onAuthStateChanged(onUser)}else setTimeout(()=>showLogin('שירות הכניסה לא נטען. רענן את הדף או בדוק את החיבור.'),400);
+function onUser(u){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];READY=false;BK_DONE=false;
+ if(!u){U=null;showLogin();return}
+ U=u;$('loginOv').classList.remove('on');$('loader').classList.add('on');$('loaderMsg').textContent='טוען את הנתונים שלך…';startSync()}
+const uref=()=>db.collection('users').doc(U.uid);
+const v2=()=>uref().collection('v2');
+const txRef=y=>v2().doc('tx_'+y);
+const FP=(a,b)=>new firebase.firestore.FieldPath(a,b);
+const DEL=()=>firebase.firestore.FieldValue.delete();
+const clean=o=>JSON.parse(JSON.stringify(o));
+function setSync(s){const e=$('sync');if(e)e.className='sync '+s}
+function startSync(){setSync('busy');
+ const un=v2().onSnapshot({includeMetadataChanges:true},snap=>{
+  setSync(snap.metadata.hasPendingWrites?'busy':(snap.metadata.fromCache?'busy':'on'));
+  if(READY&&snap.docChanges().length===0)return;
+  let set=null,bal={m:{}};const tx={},docs={};
+  snap.forEach(doc=>{const id=doc.id,d=doc.data();if(id==='settings')set=d;else if(id==='balances')bal=d&&d.m?d:{m:{}};else if(/^tx_\d{4}$/.test(id)){docs[id.slice(3)]=1;const it=(d&&d.items)||{};for(const k in it)if(it[k]&&it[k].id&&isDate(it[k].d))tx[k]=it[k]}});
+  if(!set){if(!snap.metadata.fromCache&&!MIGRATING)firstRun();return}
+  if(set.ownerUid&&set.ownerUid!==U.uid){denied();return}
+  S.set=set;S.bal=bal;S.tx=tx;S.txDocs=docs;afterData();
+ },err=>{console.error(err);if(err&&err.code==='permission-denied')denied();else{setSync('off');$('loader').classList.remove('on');toast('אין חיבור לשרת כרגע. השינויים יישמרו כשהחיבור יחזור.')}});
+ unsubs.push(un)}
+function denied(){const em=(U&&U.email)||'';showLogin('לחשבון '+em+' אין הרשאה לנתונים האלה. היכנס עם החשבון שלך.');if(auth)auth.signOut()}
+function afterData(){buildIndex();buildRules();applyTheme();
+ if(!SHOWN){SHOWN=true;READY=true;$('loader').classList.remove('on');['hd','nav','main','bnav','fab'].forEach(i=>$(i).hidden=false);document.body.classList.add('app');go(PAGE);initLock()}else{READY=true;render()}
+ if(!BK_DONE){BK_DONE=true;setTimeout(dailyBackup,3000)}
+ if(MIG_REPORT){const r=MIG_REPORT;MIG_REPORT=null;setTimeout(()=>showMigReport(r),500)}}
+async function firstRun(){MIGRATING=true;$('loaderMsg').textContent='מכין את המערכת בפעם הראשונה…';
+ try{let leg=null;try{const d=await uref().collection('data').doc('main').get();if(d.exists)leg=d.data()}catch(e){console.warn('legacy',e)}
+  if(leg&&leg.months&&Object.keys(leg.months).length){const r=migrateLegacy(leg,null);await writeState(r.state,false);MIG_REPORT=r.report;logAct('migrate','מעבר מהגרסה הקודמת: '+r.report.line)}
+  else{await writeState({set:freshSettings(),bal:{m:{}},tx:{}},false);logAct('init','הקמה ראשונית')}
+ }catch(e){console.error(e);$('loaderMsg').innerHTML='ההכנה הראשונית נכשלה.<br><span class="small dim">'+esc(e.message)+'</span>'}
+ MIGRATING=false}
+async function writeState(st,replace){const b=db.batch();b.set(v2().doc('settings'),clean(st.set));b.set(v2().doc('balances'),clean(st.bal&&st.bal.m?st.bal:{m:{}}));
+ const by={};for(const id in st.tx){const t=st.tx[id];if(!t||!isDate(t.d))continue;const y=t.d.slice(0,4);(by[y]||(by[y]={}))[id]=clean(t)}
+ if(replace)for(const y in S.txDocs)if(!by[y])by[y]={};
+ for(const y in by)b.set(txRef(y),{items:by[y]});await b.commit()}
+function freshSettings(){return{v:2,ownerUid:U.uid,ownerEmail:U.email||'',createdAt:new Date().toISOString(),theme:'dark',
+ assets:[{id:'osh',n:'עו"ש',k:'cash',tax:0,liq:1,fd:0,fs:0,bd:0,bm:null,col:COLORS[0]}],accounts:[{id:'osh',n:'עו"ש',as:'osh'}],
+ bizLines:[{id:'main',n:'העסק הראשי',on:1},{id:'side',n:'עסק נוסף',on:0,cap:0,target:0}],
+ fixed:[],budgets:{},rules:[],okFlags:{},closed:{},fixedDone:{},tp:{points:2.25,homeOffice:0,refRate:7,annual:{}},prefs:{autoLock:15},bk:[]}}
+
+/* ============ כתיבה לענן ============ */
+async function commit(b){setSync('busy');try{await b.commit();return true}catch(e){console.error(e);setSync('off');toast('השמירה נכשלה: '+(e.code==='permission-denied'?'אין הרשאה':e.message));return false}}
+async function putTx(tx,old){tx=clean(tx);const b=db.batch(),y=tx.d.slice(0,4),oy=old?old.d.slice(0,4):null;
+ if(old&&oy===y)b.update(txRef(y),FP('items',tx.id),tx);else{if(old)b.update(txRef(oy),FP('items',old.id),DEL());b.set(txRef(y),{items:{[tx.id]:tx}},{merge:true})}
+ S.tx[tx.id]=tx;buildIndex();return commit(b)}
+async function putTxs(list){if(!list.length)return true;const by={};list.forEach(t=>{t=clean(t);(by[t.d.slice(0,4)]||(by[t.d.slice(0,4)]={}))[t.id]=t;S.tx[t.id]=t});const b=db.batch();for(const y in by)b.set(txRef(y),{items:by[y]},{merge:true});buildIndex();return commit(b)}
+async function delTxs(list){if(!list.length)return true;const b=db.batch();list.forEach(t=>{b.update(txRef(t.d.slice(0,4)),FP('items',t.id),DEL());delete S.tx[t.id]});buildIndex();return commit(b)}
+async function saveSet(patch){Object.assign(S.set,patch);if(patch.rules)buildRules();setSync('busy');try{await v2().doc('settings').update(clean(patch));return true}catch(e){console.error(e);setSync('off');toast('השמירה נכשלה: '+e.message);return false}}
+async function setBal(m,obj){if(obj)S.bal.m[m]=obj;else delete S.bal.m[m];buildIndex();setSync('busy');
+ try{await v2().doc('balances').update(FP('m',m),obj?clean(obj):DEL());return true}catch(e){if(e.code==='not-found'&&obj){await v2().doc('balances').set({m:{[m]:clean(obj)}},{merge:true});return true}toast('השמירה נכשלה: '+e.message);return false}}
+function logAct(act,t){try{uref().collection('log').add({at:firebase.firestore.FieldValue.serverTimestamp(),act:act,t:String(t||'').slice(0,200),dev:isMobile?'נייד':'מחשב'}).catch(()=>{})}catch(e){}}
+
+/* ============ גיבויים ============ */
+function dataSnapshot(){return{format:'finboard-v2',at:new Date().toISOString(),settings:S.set,bal:S.bal,tx:Object.values(S.tx)}}
+async function backupNow(tag){const id=todayS()+(tag?'-'+tag+'-'+Date.now().toString(36).slice(-4):'');const data=JSON.stringify(dataSnapshot());
+ if(data.length>900000){toast('הנתונים גדולים מדי לגיבוי בענן. ייצא קובץ גיבוי מההגדרות.');return false}
+ await uref().collection('backups').doc(id).set({at:new Date().toISOString(),n:Object.keys(S.tx).length,data:data});
+ const bk=(S.set.bk||[]).filter(x=>x.id!==id);bk.push({id:id,at:new Date().toISOString(),n:Object.keys(S.tx).length});
+ const isDaily=x=>/^\d{4}-\d{2}-\d{2}$/.test(x.id),daily=bk.filter(isDaily),tagged=bk.filter(x=>!isDaily(x));
+ const drop=daily.slice(0,Math.max(0,daily.length-30)).concat(tagged.slice(0,Math.max(0,tagged.length-10)));
+ for(const d of drop){try{await uref().collection('backups').doc(d.id).delete()}catch(e){}}
+ await saveSet({bk:bk.filter(x=>drop.indexOf(x)<0),lastBackup:todayS()});return true}
+async function dailyBackup(){if(!S.set||S.set.lastBackup===todayS())return;try{await backupNow()}catch(e){console.warn('backup',e)}}
+async function restoreBackup(id){try{const d=await uref().collection('backups').doc(id).get();if(!d.exists)return toast('הגיבוי לא נמצא');await applyFull(JSON.parse(d.data().data),'שחזור מגיבוי '+id)}catch(e){toast('השחזור נכשל: '+e.message)}}
+async function applyFull(o,label){if(!o||o.format!=='finboard-v2'||!o.settings)return toast('הקובץ לא בפורמט של FinBoard 2');
+ await backupNow('pre');const set=o.settings;set.ownerUid=U.uid;set.bk=S.set.bk;set.lastBackup=S.set.lastBackup;const tx={};(o.tx||[]).forEach(t=>{if(t&&t.id&&isDate(t.d))tx[t.id]=t});
+ await writeState({set:set,bal:o.bal||{m:{}},tx:tx},true);logAct('restore',label);closeMo();toast('הנתונים שוחזרו. נשמר גיבוי של המצב הקודם.')}
+
+/* ============ מעבר מהגרסה הקודמת ============ */
+const LEG=[
+ {raw:'עובר ושב',as:'osh',n:'עו"ש',k:'cash'},{raw:'קרן כספית',as:'mmf',n:'קרן כספית',k:'mmf'},{raw:'פיקדון אישי',as:'pikadon',n:'פיקדון',k:'deposit'},
+ {raw:'ביטוח ישיר - כללי',as:'bys_gen',n:'ביטוח ישיר כללי',k:'gemel'},{raw:'ביטוח ישיר - מניות',as:'bys_stk',n:'ביטוח ישיר מניות',k:'gemel'},
+ {raw:'מיטב',as:'mitav',n:'מיטב',k:'gemel'},{raw:'מיטב טרייד',as:'mtrade',n:'מיטב טרייד',k:'broker'},
+ {raw:'מנורה מבטחים - תגמולים ופיצויים',as:'men_tag',n:'מנורה תגמולים',k:'gemel',liq:0},{raw:'מנורה מבטחים - גמל להשקעה',as:'men_gemel',n:'מנורה גמל להשקעה',k:'gemel'},
+ {raw:'הראל השתלמות',as:'hish',n:'קרן השתלמות',k:'hish',acc:'hish_harel',an:'הראל השתלמות'},{raw:'מנורה מבטחים השתלמות',as:'hish',n:'קרן השתלמות',k:'hish',acc:'hish_menora',an:'מנורה השתלמות'},
+ {raw:'פנסיה',as:'pension',n:'פנסיה',k:'pension'}];
+const LEG_DISP={'מנורה תגמולים':'men_tag','מנורה גמל':'men_gemel','השתלמות':'hish','עו"ש':'osh'};
+const LEG_EXP={rent:'office_rent',computer:'equip_small',software:'sw_abroad',internet:'phone',transport:'transport_biz',accounting:'prof',marketing:'marketing',office:'office',meals:'meals_biz',health_ins:'ins_life',other_biz:'other_biz',rent_home:'rent_home',food:'food',bills:'utilities',fun:'leisure',clothing:'clothing',travel:'travel',gym:'gym',other:'other'};
+const LEG_INC={client:'client',retainer:'retainer',consulting:'other_biz',other:'other_biz'};
+const LEG_TAX={vat:'vat',income_adv:'it',bituach_leumi:'bl',income_annual:'it_set'};
+function migrateLegacy(L,base){
+ const set=base?clone(base.set):freshSettings(),bal=base?clone(base.bal):{m:{}},tx=base?clone(base.tx):{};if(!bal.m)bal.m={};
+ const asMap=new Map(set.assets.map(a=>[a.id,a])),acMap=new Map(set.accounts.map(c=>[c.id,c])),raw2acc={},name2as={};
+ const ensure=(as,n,k,acc,an,liq)=>{if(!asMap.has(as)){const d=KDEF[k]||KDEF.other;const a={id:as,n:n,k:k,tax:d.tax,liq:liq!=null?liq:d.liq,fd:0,fs:0,bd:0,bm:null,col:COLORS[asMap.size%COLORS.length]};asMap.set(as,a);set.assets.push(a)}if(!acMap.has(acc)){const c={id:acc,n:an,as:as};acMap.set(acc,c);set.accounts.push(c)}};
+ const rawAll=new Set(L.cats||[]);for(const m in (L.months||{}))for(const r in L.months[m])rawAll.add(r);
+ rawAll.forEach(raw=>{const m=LEG.find(x=>x.raw===raw);let as,acc;if(m){as=m.as;acc=m.acc||m.as;ensure(as,m.n,m.k,acc,m.an||m.n,m.liq)}else{as='a_'+shortHash(raw);acc=as;ensure(as,raw,'other',acc,raw)}raw2acc[raw]=acc;name2as[raw]=as});
+ asMap.forEach(a=>{name2as[a.n]=a.id});for(const k in LEG_DISP)if(asMap.has(LEG_DISP[k]))name2as[k]=LEG_DISP[k];
+ const resolve=nm=>name2as[nm]||(asMap.has(nm)?nm:null);
+ let nMonths=0,legSum=0,newSum=0;const mk=Object.keys(L.months||{}).filter(isMonth).sort();
+ mk.forEach(m=>{if(base&&bal.m[m])return;const src=L.months[m],o={};for(const raw in src){const v=+src[raw]||0;const acc=raw2acc[raw];o[acc]=(o[acc]||0)+v;legSum+=v}newSum+=sum(Object.values(o));bal.m[m]=o;nMonths++});
+ const adj={},addAdj=(as,v)=>{if(as&&as!=='osh')adj[as]=(adj[as]||0)+v};const mid=m=>m+'-15',sid=x=>String(x).replace(/[^\w]/g,'_');
+ let nI=0,nE=0,nT=0,nX=0,sumI=0,sumE=0,sumT=0;
+ (L.incomes||[]).forEach(i=>{if(!isMonth(i.month)||!(+i.amount>0))return;const id='Li'+sid(i.id);tx[id]={id:id,d:mid(i.month),k:'inc',c:LEG_INC[i.cat||i.category]||'client',b:'main',a:+i.amount,ds:String(i.desc||'הכנסה').slice(0,120),s:'l'};nI++;sumI+=+i.amount});
+ (L.expenses||[]).forEach(e=>{if(!isMonth(e.month)||!(+e.amount>0))return;const c=e.cat||e.category,id='Le'+sid(e.id),d=mid(e.month);
+  if(c==='pension'||c==='hishtalmut'||c==='pension_dep'){const as=c==='hishtalmut'?'hish':'pension';if(!asMap.has(as))return;tx[id]={id:id,d:d,k:'dep',as:as,a:+e.amount,ds:String(e.desc||'הפקדה').slice(0,120),s:'l'};addAdj(as,+e.amount);nX++}
+  else if(c==='bituach'){tx[id]=Object.assign({id:id,d:d,k:'tax',tt:'bl',a:+e.amount,ds:'ביטוח לאומי',s:'l'},taxPeriod('bl',d));nT++}
+  else{tx[id]={id:id,d:d,k:'exp',c:LEG_EXP[c]||'other',a:+e.amount,ds:String(e.desc||'הוצאה').slice(0,120),s:'l'};if(expById(tx[id].c).t==='b')tx[id].b='main';nE++;sumE+=+e.amount}});
+ (L.taxPayments||[]).forEach(p=>{if(!isMonth(p.month)||!(+p.amount))return;const tt=LEG_TAX[p.type]||'it',d=mid(p.month),id='Lt'+sid(p.id);const t=Object.assign({id:id,d:d,k:'tax',tt:tt,a:Math.abs(+p.amount),ds:TAXT[tt],s:'l'},taxPeriod(tt,d));if(+p.amount<0)t.rf=1;tx[id]=t;nT++;sumT+=+p.amount});
+ (L.transfers||[]).forEach(x=>{if(!isMonth(x.month)||!(+x.amount>0))return;const f=resolve(x.from)||'osh',to=resolve(x.to);if(!to||f===to)return;const id='Lx'+sid(x.id),t={id:id,d:mid(x.month),a:+x.amount,ds:'העברה',s:'l'};
+  if(f==='osh'){t.k='dep';t.as=to;addAdj(to,+x.amount)}else if(to==='osh'){t.k='wd';t.as=f;addAdj(f,-x.amount)}else{t.k='xfer';t.af=f;t.as=to;addAdj(f,-x.amount);addAdj(to,+x.amount)}tx[id]=t;nX++});
+ const bm=(L.months&&L.months['2026-03'])?'2026-03':mk[mk.length-1]||null,deps=[];
+ for(const k in (L.accounts||{})){const as=resolve(k);if(!as||as==='osh')continue;const a=asMap.get(as),src=L.accounts[k]||{};const dep=+(src.dep!=null?src.dep:src.totalDeposited)||0;
+  if(!base||!(a.bd>0)){if(dep>0||adj[as]){a.bd=Rn(Math.max(0,dep-(adj[as]||0)));a.bm=bm}}
+  const fd=src.fd!=null?src.fd:src.feeDeposit,fs=src.fs!=null?src.fs:src.feeSavings;if(fd!=null)a.fd=+fd||0;if(fs!=null)a.fs=+fs||0;if(a.bd>0)deps.push(a.n+': '+Rn(a.bd).toLocaleString('he-IL')+' ₪')}
+ if(L.fixedDeps&&!base){set.fixed=[];for(const k in L.fixedDeps){const as=resolve(k),amt=+L.fixedDeps[k]||0;if(as&&asMap.has(as)&&amt>0)set.fixed.push({id:'fx_'+as,k:'dep',as:as,a:amt,ds:'הפקדה קבועה ל'+asMap.get(as).n,on:1})}}
+ if(L.fixedDone)set.fixedDone=Object.assign({},L.fixedDone,set.fixedDone||{});if(L.theme&&!base)set.theme=L.theme;
+ const txMonths=[...new Set([].concat(L.incomes||[],L.expenses||[],L.taxPayments||[],L.transfers||[]).map(x=>x&&x.month).filter(isMonth))].sort();
+ return{state:{set:set,bal:bal,tx:tx},report:{months:nMonths,inc:nI,exp:nE,tax:nT,flows:nX,sumI:sumI,sumE:sumE,sumT:sumT,balOk:Math.abs(legSum-newSum)<1,legSum:legSum,deps:deps,txMonths:txMonths,bm:bm,line:nMonths+' חודשי יתרות ו-'+(nI+nE+nT+nX)+' תנועות'}}}
+async function importHistory(o){const list=o.tx||o.flows||[];const add=[];let skip=0,miss=0;const hs=new Set(Object.values(S.tx).map(t=>t.h).filter(Boolean));
+ for(const f of list){if(!f||!isDate(f.d)||!(+f.a>0)||!['dep','wd','inc','exp','tax'].includes(f.k)){skip++;continue}
+  if((f.k==='dep'||f.k==='wd')&&!assetById(f.as)){miss++;continue}
+  const id='h'+shortHash(f.h||(f.d+'|'+f.k+'|'+(f.as||f.c||'')+'|'+f.a));
+  if(S.tx[id]||(f.h&&hs.has(f.h))||softDup(f)){skip++;continue}
+  const t=clean(f);t.id=id;t.s='h';if(t.k==='tax'&&!t.p)Object.assign(t,taxPeriod(t.tt,t.d));add.push(t);if(f.h)hs.add(f.h)}
+ await putTxs(add);logAct('history','ייבוא נתוני עבר: '+add.length+' תנועות');return{add:add.length,skip:skip,miss:miss}}
+function softDup(f){const m=f.d.slice(0,7);for(const id in S.tx){const t=S.tx[id];if(t.k!==f.k||t.d.slice(0,7)!==m)continue;if(Math.abs(t.a-f.a)>Math.max(2,f.a*.01))continue;
+  if(f.k==='dep'||f.k==='wd'){if(t.as===f.as)return true}else if(f.k==='inc'){if(Math.abs(new Date(t.d)-new Date(f.d))<864e5*12)return true}else if(f.k==='tax'){if(t.tt===f.tt)return true}else if(t.c===f.c)return true}return false}
+
+/* ============ מנוע החסכונות ============ */
+const hoPct=()=>((S.set&&S.set.tp&&+S.set.tp.homeOffice)||0)/100;
+const allAssets=()=>(S.set&&S.set.assets)||[];
+const A=()=>allAssets().filter(a=>!a.arc);
+const assetById=id=>allAssets().find(a=>a.id===id);
+const invAssets=()=>A().filter(a=>a.k!=='cash');
+const cashIds=()=>A().filter(a=>a.k==='cash').map(a=>a.id);
+const accsOf=as=>((S.set&&S.set.accounts)||[]).filter(c=>c.as===as);
+function buildIndex(){VER++;const flows={},flowList={},revM={},dedM={};let firstInc=null;const ho=hoPct();
+ const add=(as,m,a,d)=>{if(!as)return;const f=flows[as]||(flows[as]={});f[m]=(f[m]||0)+a;(flowList[as]||(flowList[as]=[])).push({d:d,a:a})};
+ for(const id in S.tx){const t=S.tx[id],m=t.d.slice(0,7);
+  if(t.k==='dep')add(t.as,m,t.a,t.d);else if(t.k==='wd')add(t.as,m,-t.a,t.d);else if(t.k==='xfer'){add(t.af,m,-t.a,t.d);add(t.as,m,t.a,t.d)}
+  else if(t.k==='inc'){const c=incById(t.c);if(c&&!c.biz)continue;const r=t.vz?0:vatRate(t.d);revM[m]=(revM[m]||0)+(t.rf?-1:1)*t.a/(1+r);if(!firstInc||m<firstInc)firstInc=m}
+  else if(t.k==='exp'){const c=expById(t.c);if(!c||c.y)continue;const sg=t.rf?-1:1,r=vatRate(t.d);
+   if(c.t==='b'){const vin=c.v?t.a*r/(1+r)*c.v:0;dedM[m]=(dedM[m]||0)+sg*(t.a-vin)*c.d}else if(c.t==='h'&&ho>0){const vin=c.v?t.a*r/(1+r)*ho:0;dedM[m]=(dedM[m]||0)+sg*(t.a*ho-vin)}}}
+ IX={flows:flows,flowList:flowList,months:Object.keys((S.bal&&S.bal.m)||{}).filter(isMonth).sort(),revM:revM,dedM:dedM,firstInc:firstInc}}
+function val(as,m){const b=S.bal.m[m];if(!b)return null;let s=0;for(const c of accsOf(as))s+=+b[c.id]||0;return s}
+const valMany=(ids,m)=>sum(ids.map(id=>val(id,m)||0));
+function flowsIn(as,m1,m2){const f=IX.flows[as];if(!f)return 0;let s=0;for(const m in f)if(m>m1&&m<=m2)s+=f[m];return s}
+function cost(as,m){const a=assetById(as);if(!a)return 0;const bd=+a.bd||0;let bm=a.bm;if(!bm&&bd>0)bm=IX.months[IX.months.length-1];
+ if(!bm){const fm=IX.months.find(x=>(val(as,x)||0)>0);if(fm&&m>=fm)return(val(as,fm)||0)+flowsIn(as,fm,m);const f=IX.flows[as]||{};let s=0;for(const k in f)if(k<=m)s+=f[k];return s}
+ return m>=bm?bd+flowsIn(as,bm,m):bd-flowsIn(as,m,bm)}
+function mret(ids,p,m){let v0=0,v1=0,f=0;for(const id of ids){v0+=val(id,p)||0;v1+=val(id,m)||0;f+=flowsIn(id,p,m)}const g=v1-v0-f,den=v0+.5*f;return{r:(den>0&&(v0>0||f>0))?g/den:null,g:g,v0:v0,v1:v1,f:f}}
+function periodMonths(per){const M=IX.months;if(!M.length)return[];const last=M[M.length-1];let from;
+ if(per==='all')from=M[0];else if(per==='ytd')from=(+last.slice(0,4)-1)+'-12';else from=addM(last,-(+per));
+ let start=M[0];for(const m of M)if(m<=from)start=m;return M.filter(m=>m>=start)}
+function perf(ids,ms){if(!ms||!ms.length)return null;const s=ms[0],e=ms[ms.length-1];let v0=0,v1=0,f=0,c=0;
+ for(const id of ids){v0+=val(id,s)||0;v1+=val(id,e)||0;f+=flowsIn(id,s,e);c+=cost(id,e)}
+ let tw=1;const rows=[];for(let i=1;i<ms.length;i++){const x=mret(ids,ms[i-1],ms[i]);x.m=ms[i];rows.push(x);if(x.r!=null)tw*=1+x.r}
+ const n=ms.length>1?mDiff(s,e):0;return{s:s,e:e,v0:v0,v1:v1,f:f,gain:v1-v0-f,twr:n?tw-1:null,ann:n>=6?Math.pow(tw,12/n)-1:null,irr:n>=3?xirr(ids,s,e):null,n:n,rows:rows,cost:c,tg:v1-c}}
+function xirr(ids,s,e){const t0=new Date(s+'-28T12:00:00'),t1=new Date(e+'-28T12:00:00'),cf=[];let v0=0,v1=0;
+ for(const id of ids){v0+=val(id,s)||0;v1+=val(id,e)||0;for(const fl of (IX.flowList[id]||[])){const m=fl.d.slice(0,7);if(m>s&&m<=e)cf.push([new Date(fl.d+'T12:00:00'),-fl.a])}}
+ if(v0>0)cf.push([t0,-v0]);cf.push([t1,v1]);if(cf.length<2||!(v1>0))return null;
+ const Y=d=>(d-t0)/315576e5,npv=r=>cf.reduce((s,x)=>s+x[1]/Math.pow(1+r,Y(x[0])),0);
+ let lo=-0.9,hi=3,fl=npv(lo),fh=npv(hi);if(!isFinite(fl)||!isFinite(fh)||fl*fh>0)return null;
+ for(let i=0;i<90;i++){const mid=(lo+hi)/2,fm=npv(mid);if(Math.abs(fm)<0.5)return mid;if(fl*fm<0){hi=mid;fh=fm}else{lo=mid;fl=fm}}return(lo+hi)/2}
+function suspects(){const out=[],M=IX.months,ok=(S.set&&S.set.okFlags)||{};for(const a of invAssets()){const thr=KTHR[a.k]||.08;for(let i=1;i<M.length;i++){const x=mret([a.id],M[i-1],M[i]);if(x.r==null)continue;if(Math.abs(x.r)>thr&&Math.abs(x.g)>1000&&!ok[a.id+'|'+M[i]])out.push({as:a.id,m:M[i],r:x.r,g:x.g})}}return out}
+function gaps(){const M=IX.months,out=[];for(let i=1;i<M.length;i++)if(mDiff(M[i-1],M[i])>1)out.push([M[i-1],M[i]]);return out}
+function spendByCat(m){const r={};for(const id in S.tx){const t=S.tx[id];if(t.k!=='exp'||t.d.slice(0,7)!==m)continue;r[t.c]=(r[t.c]||0)+(t.rf?-1:1)*t.a}return r}
+function monthTotals(m){const r={inc:0,exp:0,dep:0,wd:0,tax:0,biz:0};for(const id in S.tx){const t=S.tx[id];if(t.d.slice(0,7)!==m)continue;const v=(t.rf?-1:1)*t.a;
+ if(t.k==='inc')r.inc+=v;else if(t.k==='exp'){r.exp+=v;const c=expById(t.c);if(c&&c.t==='b')r.biz+=v}else if(t.k==='dep')r.dep+=t.a;else if(t.k==='wd')r.wd+=t.a;else if(t.k==='tax')r.tax+=v}return r}
+function avgMonthlyExp(){const cm=curM();let s=0,n=0;for(let i=1;i<=6;i++){const t=monthTotals(addM(cm,-i));if(t.exp>0){s+=t.exp;n++}}return n?s/n:0}
+
+/* ============ מנוע המס ============ */
+function bizIncome(y){y=String(y);const r={mo:{},ex:0,vat:0,cnt:0};
+ for(const id in S.tx){const t=S.tx[id];if(t.k!=='inc'||t.d.slice(0,4)!==y)continue;const c=incById(t.c);if(c&&!c.biz)continue;
+  const sg=t.rf?-1:1,rt=t.vz?0:vatRate(t.d),ex=sg*t.a/(1+rt),v=sg*t.a-ex,m=t.d.slice(0,7),o=r.mo[m]||(r.mo[m]={ex:0,vat:0});o.ex+=ex;o.vat+=v;r.ex+=ex;r.vat+=v;r.cnt++}
+ return r}
+function bizExp(y){y=String(y);const ho=hoPct(),r={ded:0,vin:0,mo:{},dis:0,life:0,don:0,depr:0,items:{}},mo=m=>r.mo[m]||(r.mo[m]={vin:0});
+ for(const id in S.tx){const t=S.tx[id];if(t.k!=='exp')continue;const c=expById(t.c);if(!c)continue;const ty=t.d.slice(0,4),m=t.d.slice(0,7),sg=t.rf?-1:1,rt=vatRate(t.d);
+  if(c.y){const vin=c.v?t.a*rt/(1+rt)*c.v:0,base=(t.a-vin)*sg;if(ty===y){r.vin+=vin*sg;mo(m).vin+=vin*sg}
+   const y0=+ty,m0=+m.slice(5),yearly=base/c.y;let rem=base;for(let yy=y0;yy<=+y&&Math.abs(rem)>0.5;yy++){let d=yy===y0?yearly*(13-m0)/12:yearly;if(Math.abs(d)>Math.abs(rem))d=rem;rem-=d;if(yy===+y){r.ded+=d*c.d;r.depr+=d*c.d;r.items[c.id]=(r.items[c.id]||0)+d*c.d}}continue}
+  if(ty!==y)continue;
+  if(c.t==='b'){const vin=c.v?t.a*rt/(1+rt)*c.v:0,dd=(t.a-vin)*c.d*sg;r.vin+=vin*sg;mo(m).vin+=vin*sg;r.ded+=dd;r.items[c.id]=(r.items[c.id]||0)+dd}
+  else if(c.t==='h'&&ho>0){const vin=c.v?t.a*rt/(1+rt)*ho:0,dd=(t.a*ho-vin)*sg;r.vin+=vin*sg;mo(m).vin+=vin*sg;r.ded+=dd;r.items.home=(r.items.home||0)+dd}
+  else if(c.id==='ins_disab')r.dis+=t.a*sg;else if(c.id==='ins_life')r.life+=t.a*sg;else if(c.id==='donation')r.don+=t.a*sg}
+ return r}
+function taxPaid(y){y=String(y);const r={vat:0,it:0,bl:0,it_set:0,bl_set:0,vatP:{},itP:{},blM:{}};
+ for(const id in S.tx){const t=S.tx[id];if(t.k!=='tax')continue;const p=t.p||t.d.slice(0,7);if(p.slice(0,4)!==y)continue;const v=t.a*(t.rf?-1:1);r[t.tt]=(r[t.tt]||0)+v;
+  if(t.tt==='vat')r.vatP[p]=(r.vatP[p]||0)+v;else if(t.tt==='it')r.itP[p]=(r.itP[p]||0)+v;else if(t.tt==='bl')r.blM[p]=(r.blM[p]||0)+v}
+ return r}
+function depYear(y){y=String(y);const r={pen:0,hish:0};for(const id in S.tx){const t=S.tx[id];if(t.k!=='dep'||t.d.slice(0,4)!==y)continue;const a=assetById(t.as);if(!a)continue;if(a.k==='pension')r.pen+=t.a;else if(a.k==='hish')r.hish+=t.a}return r}
+const fixedMonthly=kind=>sum(((S.set&&S.set.fixed)||[]).filter(f=>f.on!==0&&f.k==='dep'&&assetById(f.as)&&assetById(f.as).k===kind).map(f=>f.a));
+function taxCalc(y,o){const P=TP(y),pt=+((S.set.tp||{}).points),pts=isFinite(pt)?pt:2.25;
+ const Y0=Math.max(0,o.rev-o.ded),bl=blCalc(Y0,y),blDed=.52*bl.ni,qi=Math.min(Y0,PEN_CAP);
+ const penDed=Math.min(o.pen,.11*qi),penCr=.35*Math.min(Math.max(0,o.pen-penDed),.055*qi);
+ const hishDed=Math.min(o.hish,.045*Math.min(Y0,HISH_CAP)),disDed=Math.min(Math.max(0,o.dis||0),.035*Y0);
+ const taxable=Math.max(0,Y0-blDed-penDed-hishDed-disDed),gross=itBr(taxable,y);
+ const cpv=pts*P.cp,lifeCr=.25*Math.max(0,o.life||0),donCr=(o.don||0)>=200?.35*o.don:0,credits=cpv+penCr+lifeCr+donCr;
+ return{Y0:Y0,rev:o.rev,ded:o.ded,bl:bl,blDed:blDed,penDed:penDed,penCr:penCr,hishDed:hishDed,disDed:disDed,taxable:taxable,gross:gross,cpv:cpv,pts:pts,lifeCr:lifeCr,donCr:donCr,credits:credits,it:Math.max(0,gross-credits),pen:o.pen,hish:o.hish}}
+const YA_CACHE={};
+function yearAnalysis(y){y=String(y);const key=y+'|'+Object.keys(S.tx).length+'|'+JSON.stringify((S.set&&S.set.tp)||{})+'|'+JSON.stringify((S.set&&S.set.fixed)||[]);if(YA_CACHE[y]&&YA_CACHE[y].k===key&&YA_CACHE[y].v===VER)return YA_CACHE[y].r;
+ const cm=curM(),cy=cm.slice(0,4),inc=bizIncome(y),ex=bizExp(y),paid=taxPaid(y),dp=depYear(y),man=(((S.set.tp||{}).annual)||{})[y]||{};
+ const src=inc.cnt?'tx':(+man.rev>0?'manual':'none');let rev=src==='manual'?+man.rev:inc.ex,ded=src==='manual'?(+man.exp||0):ex.ded,lo=rev,hi=rev,proj=false,remain=0;
+ const incM=Object.keys(inc.mo).sort(),lastData=incM[incM.length-1];
+ if(y===cy&&src==='tx'){const lm=lastData||addM(cm,-1);remain=lm.slice(0,4)===cy?Math.max(0,12-(+lm.slice(5))):12;
+  if(remain>0){const first=IX.firstInc,to=lastData&&lastData<addM(cm,-1)?lastData:addM(cm,-1),from=first&&first>addM(to,-11)?first:addM(to,-11),ser=[],dser=[];for(let m=from;m<=to;m=addM(m,1)){ser.push(IX.revM[m]||0);dser.push(IX.dedM[m]||0)}
+   if(ser.length>=2){const av=sum(ser)/ser.length,sd=Math.sqrt(sum(ser.map(v=>(v-av)*(v-av)))/(ser.length-1)),dav=sum(dser)/dser.length;rev+=remain*av;ded+=remain*dav;lo=Math.max(rev-remain*av,rev-remain*sd*.8);hi=rev+remain*sd*.8;proj=true}}}
+ const pen=dp.pen+(proj?remain*fixedMonthly('pension'):0),hish=dp.hish+(proj?remain*fixedMonthly('hish'):0);
+ const o={rev:rev,ded:ded,pen:pen,hish:hish,dis:ex.dis,life:ex.life,don:ex.don},T=taxCalc(y,o),Tlo=taxCalc(y,Object.assign({},o,{rev:lo})),Thi=taxCalc(y,Object.assign({},o,{rev:hi}));
+ const per=[];for(let i=1;i<=11;i+=2){const p=y+'-'+String(i).padStart(2,'0'),p2=addM(p,1),a1=inc.mo[p]||{},a2=inc.mo[p2]||{},e1=ex.mo[p]||{},e2=ex.mo[p2]||{};
+  const out=(a1.vat||0)+(a2.vat||0),vin=(e1.vin||0)+(e2.vin||0),pd=paid.vatP[p]||0,turn=(a1.ex||0)+(a2.ex||0);
+  if(src==='tx'&&(turn||pd||vin)||pd)per.push({p:p,turn:turn,out:out,vin:vin,due:src==='tx'?out-vin:null,paid:pd,dd:addM(p,2)+'-15',itp:paid.itP[p]||0})}
+ const blMissing=[];if(Object.keys(paid.blM).length){const endM=y<cy?y+'-12':addM(cm,-1);for(let m=y+'-01';m<=endM;m=addM(m,1))if(!paid.blM[m])blMissing.push(m)}
+ let itProj=paid.it,blProj=paid.bl;if(y===cy){const ip=Object.keys(paid.itP).length,bp=Object.keys(paid.blM).length;itProj=paid.it+(ip?Math.max(0,6-ip)*paid.it/ip:0);blProj=paid.bl+(bp?Math.max(0,12-bp)*paid.bl/bp:0)}
+ const settleIT=src==='none'?null:T.it-itProj-paid.it_set,settleBL=src==='none'?null:T.bl.t-blProj-paid.bl_set;
+ const td=todayS(),itMissing=y>=cy?per.filter(x=>x.dd<td&&!x.itp&&x.turn>0).map(x=>x.p):[];const pp=per.filter(x=>x.itp>0),turnPaid=sum(pp.map(x=>x.turn)),rateNow=turnPaid>0?sum(pp.map(x=>x.itp))/turnPaid:null,rateSug=rev>0?T.it/rev:null;
+ const r={y:y,src:src,inc:inc,ex:ex,paid:paid,dp:dp,man:man,rev:rev,ded:ded,lo:lo,hi:hi,proj:proj,remain:remain,T:T,Tlo:Tlo,Thi:Thi,per:per,blMissing:blMissing,itProj:itProj,blProj:blProj,settleIT:settleIT,settleBL:settleBL,rateNow:rateNow,rateSug:rateSug,incMonths:incM.length,lastInc:lastData||null,itMissing:itMissing};
+ YA_CACHE[y]={k:key,v:VER,r:r};return r}
+function taxReserve(){const cm=curM(),cy=cm.slice(0,4),lim=addM(cm,-2)+'-01',items=[];let vat=0;
+ [String(+cy-1),cy].forEach(y=>{const Y=yearAnalysis(y);if(Y.src!=='tx')return;Y.per.forEach(p=>{if(p.due==null)return;const end=addM(p.p,1);if(end>=cm||p.dd<lim)return;const o=Math.max(0,p.due-p.paid);if(o>1){vat+=o;items.push(['מע"מ '+MS[+p.p.slice(5)-1]+'–'+MS[+end.slice(5)-1],o])}})});
+ const Yc=yearAnalysis(cy),mo=+cm.slice(5),ps=mo%2===1?cm:addM(cm,-1),op=Yc.per.find(p=>p.p===ps);if(op&&op.due>1){vat+=op.due;items.push(['מע"מ של התקופה הנוכחית עד עכשיו',op.due])}
+ let it=0,bl=0;if(Yc.src==='tx'){const frac=(mo-1)/12;it=Math.max(0,Yc.T.it*frac-Yc.paid.it);bl=Math.max(0,Yc.T.bl.t*frac-Yc.paid.bl)}
+ if(it>1)items.push(['מס הכנסה שנצבר השנה ועוד לא שולם',it]);if(bl>1)items.push(['ביטוח לאומי שנצבר השנה ועוד לא שולם',bl]);
+ const Yp=yearAnalysis(String(+cy-1));let prev=0;if(Yp.src!=='none'&&Yp.incMonths>=10&&!Yp.paid.it_set&&Yp.settleIT>0){prev=Yp.settleIT;items.push(['צפי לתשלום בשומת '+Yp.y,prev])}
+ return{total:vat+it+bl+prev,items:items}}
+function lastBL(){const l=Object.values(S.tx).filter(t=>t.k==='tax'&&t.tt==='bl'&&!t.rf).sort((a,b)=>a.d<b.d?1:-1).slice(0,3);return l.length?sum(l.map(t=>t.a))/l.length:null}
+function upcoming(){const t=todayS(),cm=curM(),out=[];
+ for(let i=0;i<3;i++){const m=addM(cm,i),dd=m+'-15';if(dd<t)continue;const mo=+m.slice(5);
+  if(mo%2===1){const p=addM(m,-2),Ya=yearAnalysis(p.slice(0,4)),pp=Ya.per.find(x=>x.p===p),lbl=MS[+p.slice(5)-1]+'–'+MS[+addM(p,1).slice(5)-1],rate=Ya.rateNow||Ya.rateSug;
+   out.push({d:dd,t:'דיווח ותשלום מע"מ '+lbl,a:pp&&pp.due!=null?Math.max(0,pp.due-pp.paid):null});out.push({d:dd,t:'מקדמת מס הכנסה '+lbl,a:pp&&rate?pp.turn*rate:null})}
+  out.push({d:dd,t:'ביטוח לאומי '+mShort(m),a:lastBL()})}
+ const y=+cm.slice(0,4);if(+cm.slice(5)<=4)out.push({d:y+'-04-30',t:'הגשת דוח שנתי '+(y-1)+' (הרו"ח יכול לבקש דחייה)',a:null});
+ return out.sort((a,b)=>a.d<b.d?-1:1)}
+function planner(){const cy=curM().slice(0,4),Y=yearAnalysis(cy);if(Y.src!=='tx')return null;const T=Y.T,qi=Math.min(T.Y0,PEN_CAP),penOpt=.165*qi,hishDedCap=.045*Math.min(T.Y0,HISH_CAP),hishEx=.07*Math.min(T.Y0,HISH_CAP);
+ const o={rev:Y.rev,ded:Y.ded,pen:T.pen,hish:T.hish,dis:Y.ex.dis,life:Y.ex.life,don:Y.ex.don},addPen=Math.max(0,penOpt-T.pen),addHish=Math.max(0,hishDedCap-T.hish);
+ const base=taxCalc(cy,o).it,wPen=taxCalc(cy,Object.assign({},o,{pen:T.pen+addPen})).it,wBoth=taxCalc(cy,Object.assign({},o,{pen:T.pen+addPen,hish:T.hish+addHish})).it;
+ const stale=!!((Y.lastInc&&Y.lastInc<addM(curM(),-2))||(Y.itMissing&&Y.itMissing.length));
+ return{stale:stale,lastInc:Y.lastInc,y:cy,Y0:T.Y0,pen:T.pen,penOpt:penOpt,addPen:addPen,savePen:base-wPen,hish:T.hish,hishDedCap:hishDedCap,hishEx:hishEx,addHish:addHish,saveHish:wPen-wBoth,total:base-wBoth,penMin:penMin(T.Y0,cy),ytdPen:Y.dp.pen,ytdHish:Y.dp.hish,proj:Y.proj,remain:Y.remain}}
+function insights(){const out=[],M=IX.months;if(!M.length)return out;const last=M[M.length-1],cash=valMany(cashIds(),last),R=taxReserve(),ae=avgMonthlyExp(),idle=cash-R.total-3*ae;
+ if(ae>0&&idle>20000)out.push({ic:'💤',t:'כ-'+fmt(idle)+' בעו"ש מעבר לכרית ביטחון של שלושה חודשי הוצאות ולכסף ששמור למס. זה כסף שלא מרוויח כלום.'});
+ A().filter(a=>a.k!=='cash'&&+a.fs>=0.8).forEach(a=>out.push({ic:'٪',t:'דמי הניהול מהצבירה ב'+esc(a.n)+' הם '+(+a.fs)+'%. מעל 0.8% כדאי לבקש הנחה או לבדוק מסלול זול יותר.'}));
+ return out}
+
+/* ============ ממשק: מסגרת ============ */
+let PAGE='dash',PER='12',CHARTS=[],MCH=[],TXF={m:'',k:'all',q:''},SETTAB='profile',TAXY=null,LOCKED=false,LAST_ACT=Date.now(),HID_AT=0,LASTCAT='food';
+const PAGES={dash:renderDash,sav:renderSav,tx:renderTx,tax:renderTax,set:renderSet};
+function go(p){PAGE=p;document.querySelectorAll('.pg').forEach(x=>x.classList.toggle('on',x.id==='p-'+p));document.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===p));PENDING=false;render(true);window.scrollTo(0,0)}
+function render(force){if(!READY)return;const ae=document.activeElement;
+ if(!force&&ae&&$('main').contains(ae)&&/INPUT|SELECT|TEXTAREA/.test(ae.tagName)){if(!PENDING){PENDING=true;ae.addEventListener('blur',()=>{PENDING=false;setTimeout(()=>render(),80)},{once:true})}return}
+ killCharts();try{PAGES[PAGE]()}catch(e){console.error(e);$('p-'+PAGE).innerHTML='<div class="pn"><h2>משהו השתבש בתצוגה הזו</h2><div class="sub">'+esc(e.message)+'</div><button class="b" onclick="go(\'dash\')">חזרה לסקירה</button></div>'}}
+function killCharts(){CHARTS.forEach(c=>{try{c.destroy()}catch(e){}});CHARTS=[]}
+function mo(html,wide){MCH.forEach(c=>{try{c.destroy()}catch(e){}});MCH=[];$('mo').dataset.sticky=wide?'1':'';$('md').className='md'+(wide?' wide':'');$('md').innerHTML=html;$('mo').classList.add('on');setTimeout(()=>{const f=$('md').querySelector('[autofocus]');if(f)f.focus()},50)}
+function closeMo(){$('mo').classList.remove('on');MCH.forEach(c=>{try{c.destroy()}catch(e){}});MCH=[];$('md').innerHTML=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('mo').classList.contains('on'))closeMo()});
+function toast(msg,undo){const t=$('toast');t.innerHTML='<span>'+esc(msg)+'</span>'+(undo?'<button id="undoB">ביטול</button>':'');t.classList.add('on');clearTimeout(t._t);if(undo)$('undoB').onclick=()=>{t.classList.remove('on');undo()};t._t=setTimeout(()=>t.classList.remove('on'),undo?7000:3500)}
+const opt=(v,l,sel)=>'<option value="'+esc(v)+'"'+(sel?' selected':'')+'>'+esc(l)+'</option>';
+const field=(label,inner)=>'<div class="fl"><label>'+label+'</label>'+inner+'</div>';
+const segHTML=(cur,items,fn)=>'<div class="seg">'+items.map(i=>'<button class="'+(cur===i[0]?'on':'')+'" onclick="'+fn+'(\''+i[0]+'\')">'+i[1]+'</button>').join('')+'</div>';
+const PERS=[['3','3 חודשים'],['6','חצי שנה'],['ytd','השנה'],['12','שנה'],['all','הכל']];
+function setPer(p){PER=p;render(true)}
+const priv=()=>document.body.classList.contains('priv');
+const kfmt=v=>{const a=Math.abs(v);return(v<0?'−':'')+'₪'+(a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?Math.round(a/1e3)+'K':Math.round(a))};
+function chartBase(){const dk=document.body.dataset.theme!=='light';Chart.defaults.font.family="'IBM Plex Sans Hebrew',sans-serif";Chart.defaults.color=dk?'#A6B1C0':'#4E5A69';Chart.defaults.borderColor=dk?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
+ return{dk:dk,grid:dk?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)',pos:dk?'#4CC38A':'#1C8653',neg:dk?'#F07070':'#C93C3C',dep:dk?'#8A96F5':'#4B59D3'}}
+function lineOpts(C){return{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',rtl:true,labels:{boxWidth:12,padding:12}},tooltip:{rtl:true,callbacks:{label:c=>c.dataset.label+': '+(priv()?'•••':(c.parsed.y<0?'−':'')+'₪'+nf(c.parsed.y))}}},scales:{y:{ticks:{callback:v=>priv()?'':kfmt(v)},grid:{color:C.grid}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}}
+function applyTheme(){const t=(S.set&&S.set.theme)||'dark';document.body.dataset.theme=t;$('thBtn').textContent=t==='dark'?'☾':'☀';const mt=document.querySelector('meta[name=theme-color]');if(mt)mt.setAttribute('content',t==='dark'?'#0E1217':'#F5F6F8');$('privBtn').classList.toggle('on',priv())}
+function togTheme(){saveSet({theme:(S.set.theme||'dark')==='dark'?'light':'dark'});applyTheme();render(true)}
+function togPriv(){const on=!priv();document.body.classList.toggle('priv',on);try{localStorage.setItem('fb_priv',on?'1':'')}catch(e){}$('privBtn').classList.toggle('on',on);render(true)}
+try{if(localStorage.getItem('fb_priv'))document.body.classList.add('priv')}catch(e){}
+function addDays(n){const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function emptyState(){return'<div class="pn empty"><h2 style="margin-bottom:6px">עוד אין כאן יתרות</h2><p>מתחילים בעדכון היתרות של החודש האחרון, או בייבוא נתונים בהגדרות.</p><div class="row" style="justify-content:center;margin-top:14px"><button class="b bp" onclick="balEditor()">עדכון יתרות</button><button class="b" onclick="SETTAB=\'data\';go(\'set\')">ייבוא נתונים</button></div></div>'}
+
+/* ============ סקירה ============ */
+function alerts(){const out=[],cm=curM(),pm=addM(cm,-1),M=IX.months,last=M[M.length-1],closed=S.set.closed||{};
+ if(!closed[pm])out.push({ic:'🗓',t:'סגירת החודש של '+mLabel(pm)+': ייבוא תנועות, הפקדות קבועות ועדכון יתרות. בערך עשר דקות.',b:'להתחיל',f:'closeMonth(\''+pm+'\')',w:1});
+ else if(last&&last<pm)out.push({ic:'✎',t:'היתרות מעודכנות רק עד '+mLabel(last)+'.',b:'עדכון יתרות',f:'balEditor()'});
+ const sp=suspects();if(sp.length)out.push({ic:'⚠',t:(sp.length===1?'חודש אחד':sp.length+' חודשים')+' שבהם חיסכון השתנה בצורה חריגה. בדרך כלל זו הפקדה או משיכה שלא נרשמה.',b:'לבדיקה',f:'go(\'sav\')'});
+ upcoming().filter(u=>u.d<=addDays(10)).forEach(u=>out.push({ic:'§',t:esc(u.t)+' עד '+dLabel(u.d)+(u.a?', בערך '+fmt(u.a):'')}));
+ if(+cm.slice(5)>=9){const pl=planner();if(pl&&!pl.stale&&pl.total>300)out.push({ic:'★',t:'עד 31 בדצמבר אפשר לחסוך כ-'+fmt(pl.total)+' במס בהפקדה לפנסיה ולהשתלמות.',b:'לחישוב',f:'go(\'tax\')',w:1})}
+ const bud=S.set.budgets||{},s2=spendByCat(cm),over=[];for(const c in bud)if(+bud[c]>0&&(s2[c]||0)>+bud[c])over.push((expById(c)||{n:c}).n);
+ if(over.length)out.push({ic:'⇡',t:'חריגה מהתקציב החודש: '+esc(over.join(', ')),b:'לפירוט',f:'TXF.m=\''+cm+'\';go(\'tx\')'});
+ return out}
+function renderDash(){const el=$('p-dash'),M=IX.months;if(!M.length){el.innerHTML=emptyState()+alertsHTML();return}
+ const last=M[M.length-1],prev=M.length>1?M[M.length-2]:null,all=A().map(a=>a.id),inv=invAssets().map(a=>a.id),cy=curM().slice(0,4),ref=+((S.set.tp||{}).refRate)||7;
+ const tot=valMany(all,last),dTot=prev?tot-valMany(all,prev):null,cash=valMany(cashIds(),last),invV=valMany(inv,last),invC=sum(inv.map(id=>cost(id,last))),invG=invV-invC;
+ const liq=sum(A().filter(a=>+a.liq).map(a=>val(a.id,last)||0)),ms=periodMonths(PER),P=perf(inv,ms),R=taxReserve(),YA=yearAnalysis(cy);
+ const den=Math.max(tot,1),wD=Math.max(0,Math.min(invC,invV))/den*100,wG=Math.max(0,invG)/den*100,wC=Math.max(0,cash)/den*100;
+ let h='<div class="pn hero"><div class="ttl" style="margin-bottom:0"><div class="lbl">השווי שלך בסוף '+mLabel(last)+'</div>'+segHTML(PER,PERS,'setPer')+'</div><div class="big">'+fmt(tot)+'</div>';
+ if(dTot!=null)h+='<div class="small '+cls(dTot)+'">'+fmtS(dTot)+' לעומת '+mLabel(prev)+'</div>';
+ h+='<div class="split" role="img" aria-label="הפקדות, רווחים ועו״ש"><i style="width:'+wD.toFixed(2)+'%;background:var(--dep)"></i><i style="width:'+wG.toFixed(2)+'%;background:var(--pos)"></i><i style="width:'+wC.toFixed(2)+'%;background:var(--t3);opacity:.5"></i></div>';
+ h+='<div class="legend"><span><span class="dot" style="background:var(--dep)"></span>הפקדת לחסכונות<b>'+fmt(invC)+'</b></span><span><span class="dot" style="background:var(--pos)"></span>'+(invG>=0?'רווחים שנצברו':'הפסד נוכחי')+'<b>'+fmt(invG)+'</b></span><span><span class="dot" style="background:var(--t3);opacity:.6"></span>עו"ש<b>'+fmt(cash)+'</b></span></div></div>';
+ const miss=YA.itMissing&&YA.itMissing.length,settle=YA.settleIT!=null&&!miss?YA.settleIT+(YA.settleBL||0):null;
+ h+='<div class="strip"><div><div class="k">נזיל</div><div class="v">'+fmt(liq)+'</div><div class="n">ועוד '+fmt(tot-liq)+' לטווח ארוך</div></div>';
+ h+='<div><div class="k">תשואה שנתית משוקללת</div><div class="v '+cls(P&&P.irr)+'">'+(P&&P.irr!=null?pct(P.irr):'—')+'</div><div class="n">'+(P&&P.n?P.n+' חודשים אחרונים':'')+(P&&P.irr!=null?', יעד '+ref+'%':'')+'</div></div>';
+ h+='<div><div class="k">כסף פנוי באמת</div><div class="v">'+fmt(cash-R.total)+'</div><div class="n">'+(miss?'לפני רישום המקדמות של השנה':'אחרי '+fmt(R.total)+' ששמורים למס')+'</div></div>';
+ h+='<div><div class="k">צפי לשומת '+cy+'</div><div class="v '+(settle==null?'':settle>0?'neg':'pos')+'">'+(settle==null?'—':fmt(Math.abs(settle)))+'</div><div class="n">'+(settle==null?(miss?'חסרים תשלומי מקדמות של השנה':'חסרות הכנסות לשנה'):settle>0?'צפוי חוב, מעבר למקדמות':'צפוי החזר')+'</div></div></div>';
+ h+=alertsHTML();
+ h+='<div class="grid g2"><div class="pn"><h2>החסכונות לאורך זמן</h2><div class="sub">הקו הירוק: שווי החסכונות. הקו המקווקו: כמה הפקדת. הפער ביניהם הוא הרווח.</div><div class="chart"><canvas id="cD1"></canvas></div></div>';
+ h+='<div class="pn"><h2>איפה הכסף</h2><div class="sub">חלוקה לפי חיסכון, נכון ל'+mLabel(last)+'.</div><div class="chart"><canvas id="cD2"></canvas></div></div></div>';
+ const ins=insights();if(ins.length)h+='<div class="pn"><h2>תובנות</h2>'+ins.map(i=>'<div class="al"><span class="ic">'+i.ic+'</span><div class="tx">'+i.t+'</div></div>').join('')+'</div>';
+ el.innerHTML=h;const C=chartBase();
+ CHARTS.push(new Chart($('cD1'),{type:'line',data:{labels:ms.map(mShort),datasets:[{label:'שווי החסכונות',data:ms.map(m=>valMany(inv,m)),borderColor:C.pos,backgroundColor:C.dk?'rgba(76,195,138,.12)':'rgba(28,134,83,.09)',fill:'+1',tension:.3,pointRadius:0,borderWidth:2},{label:'סך ההפקדות',data:ms.map(m=>sum(inv.map(id=>cost(id,m)))),borderColor:C.dep,borderDash:[5,4],fill:false,tension:.2,pointRadius:0,borderWidth:2}]},options:lineOpts(C)}));
+ const items=invAssets().map(a=>({n:a.n,v:val(a.id,last)||0,c:a.col})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v),tv=sum(items.map(x=>x.v));
+ CHARTS.push(new Chart($('cD2'),{type:'doughnut',data:{labels:items.map(x=>x.n),datasets:[{data:items.map(x=>x.v),backgroundColor:items.map(x=>x.c),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,animation:false,cutout:'62%',plugins:{legend:{position:'right',rtl:true,labels:{boxWidth:10,padding:8,font:{size:12}}},tooltip:{rtl:true,callbacks:{label:c=>c.label+': '+(priv()?'•••':'₪'+nf(c.parsed)+' ('+(c.parsed/tv*100).toFixed(1)+'%)')}}}}}))}
+function alertsHTML(){const al=alerts();if(!al.length)return'';return'<div class="pn"><h2>דורש תשומת לב</h2><div class="sub">מה כדאי לעשות עכשיו</div>'+al.map(a=>'<div class="al'+(a.w?' warn':'')+'"><span class="ic">'+a.ic+'</span><div class="tx">'+a.t+'</div>'+(a.b?'<button class="b bs" onclick="'+a.f+'">'+a.b+'</button>':'')+'</div>').join('')+'</div>'}
+
+/* ============ חסכונות ============ */
+function renderSav(){const el=$('p-sav'),M=IX.months;if(!M.length){el.innerHTML=emptyState();return}
+ const last=M[M.length-1],ms=periodMonths(PER),inv=invAssets(),ids=inv.map(a=>a.id),P=perf(ids,ms),ref=+((S.set.tp||{}).refRate)||7;
+ let h='<div class="ttl"><h1>חסכונות והשקעות</h1>'+segHTML(PER,PERS,'setPer')+'</div><div class="row" style="margin-bottom:14px"><button class="b bp" onclick="balEditor()">עדכון יתרות</button><button class="b" onclick="quickAdd(\'dep\')">הפקדה או משיכה</button><button class="b" onclick="assetEditor()">חיסכון חדש</button></div>';
+ h+='<div class="strip"><div><div class="k">שווי החסכונות</div><div class="v">'+fmt(P.v1)+'</div><div class="n">מתוכם הפקדת '+fmt(P.cost)+'</div></div>';
+ h+='<div><div class="k">רווח מצטבר</div><div class="v '+cls(P.tg)+'">'+fmtS(P.tg)+'</div><div class="n">'+(P.cost>0?pct(P.tg/P.cost)+' על מה שהפקדת':'')+'</div></div>';
+ h+='<div><div class="k">בתקופה: הפקדות נטו</div><div class="v">'+fmtS(P.f)+'</div><div class="n">'+mShort(P.s)+' עד '+mShort(P.e)+'</div></div>';
+ h+='<div><div class="k">בתקופה: רווח מהשוק</div><div class="v '+cls(P.gain)+'">'+fmtS(P.gain)+'</div><div class="n">'+(P.twr!=null?pct(P.twr)+' בתקופה':'')+(P.irr!=null?', '+pct(P.irr)+' לשנה':'')+'</div></div></div>';
+ const sp=suspects(),gp=gaps();
+ if(sp.length||gp.length){h+='<div class="pn"><h2>בדיקת תקינות</h2><div class="sub">חודשים שבהם השינוי ביתרה גדול מתנודה רגילה של השוק. אם הייתה הפקדה או משיכה, רשום אותה כדי שהתשואה תחושב נכון. אם זה באמת השוק, סמן "תקין".</div>';
+  sp.slice(0,12).forEach(s=>{const a=assetById(s.as);h+='<div class="al warn"><span class="ic">⚠</span><div class="tx"><b>'+esc(a.n)+'</b>, '+mLabel(s.m)+': שינוי של '+fmtS(s.g)+' ('+pct(s.r)+') שלא מוסבר בהפקדות.</div><button class="b bs" onclick="fixSuspect(\''+s.as+'\',\''+s.m+'\','+Rn(s.g)+')">רישום '+(s.g>0?'הפקדה':'משיכה')+'</button><button class="b bs" onclick="okSuspect(\''+s.as+'\',\''+s.m+'\')">תקין</button></div>'});
+  if(sp.length>12)h+='<div class="small dim">ועוד '+(sp.length-12)+' חודשים.</div>';
+  gp.forEach(g=>{h+='<div class="al"><span class="ic">⋯</span><div class="tx">אין יתרות בין '+mLabel(g[0])+' ל'+mLabel(g[1])+'. התשואה בתקופה הזו מחושבת כחודש אחד ארוך.</div></div>'});h+='</div>'}
+ h+='<div class="pn"><h2>לפי חיסכון</h2><div class="sub">לחיצה על שורה פותחת גרף, היסטוריה והגדרות. "לשנה" מתחשב במועד של כל הפקדה, כך שאפשר להשוות בהוגנות בין חסכונות.</div><div class="tw"><table><thead><tr><th>חיסכון</th><th>שווי</th><th class="hide-m">הופקד</th><th>רווח</th><th>בתקופה</th><th class="hide-m">לשנה</th><th class="hide-m">מס במשיכה</th><th class="hide-m">נטו</th></tr></thead><tbody>';
+ const rows=inv.map(a=>{const v=val(a.id,last)||0,c=cost(a.id,last),g=v-c,p=perf([a.id],ms),tx=g>0?g*(+a.tax||0):0;return{a:a,v:v,c:c,g:g,p:p,tx:tx}}).filter(r=>r.v>0||r.c>0).sort((x,y)=>y.v-x.v);
+ rows.forEach(r=>{h+='<tr class="cl" onclick="assetView(\''+r.a.id+'\')"><td><span class="dot" style="background:'+r.a.col+'"></span>'+esc(r.a.n)+(+r.a.liq?'':' <span class="tg">טווח ארוך</span>')+'</td><td>'+fmt(r.v)+'</td><td class="hide-m">'+(r.c?fmt(r.c):'—')+'</td><td class="'+cls(r.g)+'">'+(r.c?fmtS(r.g)+' <span class="small">'+pct(r.g/r.c)+'</span>':'—')+'</td><td class="'+cls(r.p&&r.p.gain)+'">'+(r.p&&r.p.twr!=null?pct(r.p.twr):'—')+'</td><td class="hide-m '+cls(r.p&&r.p.irr)+'">'+(r.p&&r.p.irr!=null?pct(r.p.irr):'—')+'</td><td class="hide-m">'+(+r.a.tax>0?(r.tx?fmt(r.tx):'—'):'<span class="dim">פטור</span>')+'</td><td class="hide-m">'+fmt(r.v-r.tx)+'</td></tr>'});
+ const tTax=sum(rows.map(r=>r.tx));
+ h+='<tr class="tot"><td>סה"כ</td><td>'+fmt(P.v1)+'</td><td class="hide-m">'+fmt(P.cost)+'</td><td class="'+cls(P.tg)+'">'+fmtS(P.tg)+'</td><td class="'+cls(P.gain)+'">'+(P.twr!=null?pct(P.twr):'—')+'</td><td class="hide-m '+cls(P.irr)+'">'+(P.irr!=null?pct(P.irr):'—')+'</td><td class="hide-m">'+fmt(tTax)+'</td><td class="hide-m">'+fmt(P.v1-tTax)+'</td></tr>';
+ h+='</tbody></table></div><div class="small dim" style="margin-top:8px">מס במשיכה: הערכה של 25% על הרווח בחסכונות רגילים. קרן השתלמות אחרי 6 שנים ופנסיה כקצבה פטורות. יעד השוואה: '+ref+'% לשנה.</div></div>';
+ h+='<div class="pn"><h2>מה הזיז את החסכונות בכל חודש</h2><div class="sub">כחול: הפקדות נטו. ירוק או אדום: רווח או הפסד מהשוק.</div><div class="chart"><canvas id="cS1"></canvas></div></div>';
+ el.innerHTML=h;const C=chartBase(),o=lineOpts(C);o.scales.x.stacked=true;o.scales.y.stacked=true;
+ CHARTS.push(new Chart($('cS1'),{type:'bar',data:{labels:P.rows.map(r=>mShort(r.m)),datasets:[{label:'הפקדות נטו',data:P.rows.map(r=>r.f),backgroundColor:C.dep,borderRadius:3},{label:'רווח מהשוק',data:P.rows.map(r=>r.g),backgroundColor:P.rows.map(r=>r.g>=0?C.pos:C.neg),borderRadius:3}]},options:o}))}
+function fixSuspect(as,m,g){quickAdd(g>0?'dep':'wd',{as:as,a:Math.abs(g),d:m+'-15',note:'הסכום מוצע לפי השינוי ביתרה. אם אתה יודע את הסכום המדויק, תקן אותו.'})}
+async function okSuspect(as,m){const ok=Object.assign({},S.set.okFlags||{});ok[as+'|'+m]=1;await saveSet({okFlags:ok});render(true)}
+function assetView(id){const a=assetById(id);if(!a)return;const M=IX.months,last=M[M.length-1],v=val(id,last)||0,c=cost(id,last),pA=perf([id],M);
+ let h='<h3><span class="dot" style="background:'+a.col+'"></span>'+esc(a.n)+'</h3><div class="sub">'+esc(KINDS[a.k]||'')+(+a.liq?', נזיל':', לטווח ארוך')+(+a.fs?', דמי ניהול '+(+a.fs)+'% מהצבירה':'')+'</div>';
+ h+='<div class="kv"><span>שווי ב'+mLabel(last)+'</span><span>'+fmt(v)+'</span></div><div class="kv"><span>הפקדת בסך הכל</span><span>'+fmt(c)+'</span></div><div class="kv strong"><span>רווח</span><span class="'+cls(v-c)+'">'+fmtS(v-c)+(c>0?' ('+pct((v-c)/c)+')':'')+'</span></div><div class="kv"><span>תשואה שנתית משוקללת מ'+mLabel(M[0])+'</span><span>'+(pA&&pA.irr!=null?pct(pA.irr):'—')+'</span></div>';
+ h+='<div class="chart s" style="margin:14px 0"><canvas id="cA1"></canvas></div>';
+ h+='<details><summary>היסטוריה חודשית</summary><div class="tw"><table><thead><tr><th>חודש</th><th>שווי</th><th>הפקדות</th><th>רווח מהשוק</th><th>%</th></tr></thead><tbody>';
+ (pA?pA.rows:[]).slice().reverse().forEach(r=>{const bad=r.r!=null&&Math.abs(r.r)>(KTHR[a.k]||.08)&&Math.abs(r.g)>1000;h+='<tr><td>'+mShort(r.m)+'</td><td>'+fmt(r.v1)+'</td><td>'+(r.f?fmtS(r.f):'—')+'</td><td class="'+cls(r.g)+'">'+fmtS(r.g)+'</td><td class="'+cls(r.r)+'">'+(r.r!=null?pct(r.r):'—')+(bad?' <span class="tg bad">חריג</span>':'')+'</td></tr>'});
+ h+='</tbody></table></div></details>';
+ const fl=Object.values(S.tx).filter(t=>((t.k==='dep'||t.k==='wd')&&t.as===id)||(t.k==='xfer'&&(t.as===id||t.af===id))).sort((x,y)=>x.d<y.d?1:-1);
+ h+='<details><summary>הפקדות ומשיכות ('+fl.length+')</summary>'+(fl.length?fl.slice(0,80).map(txRow).join(''):'<div class="dim small">לא נרשמו</div>')+'</details>';
+ h+='<div class="mf"><button class="b bp" onclick="quickAdd(\'dep\',{as:\''+id+'\'})">הפקדה או משיכה</button><button class="b" onclick="assetEditor(\''+id+'\')">הגדרות החיסכון</button><button class="b" onclick="closeMo()">סגירה</button></div>';
+ mo(h,true);const C=chartBase();
+ MCH.push(new Chart($('cA1'),{type:'line',data:{labels:M.map(mShort),datasets:[{label:'שווי',data:M.map(m=>val(id,m)),borderColor:C.pos,backgroundColor:C.dk?'rgba(76,195,138,.12)':'rgba(28,134,83,.09)',fill:'+1',tension:.3,pointRadius:0,borderWidth:2},{label:'הופקד',data:M.map(m=>cost(id,m)),borderColor:C.dep,borderDash:[5,4],pointRadius:0,borderWidth:2,fill:false}]},options:lineOpts(C)}))}
+function assetEditor(id){const a=id?assetById(id):null,M=IX.months;
+ let h='<h3>'+(a?'הגדרות: '+esc(a.n):'חיסכון חדש')+'</h3><div class="sub">'+(a?'השינויים משפיעים על חישוב הרווח והמס.':'קופה, פוליסה, תיק השקעות או חשבון חדש.')+'</div><div class="fg">';
+ h+=field('שם','<input class="in" id="aeN" maxlength="40" value="'+esc(a?a.n:'')+'"'+(a?'':' autofocus')+'>');
+ h+=field('סוג','<select class="in" id="aeK" onchange="aeKind()">'+Object.keys(KINDS).map(k=>opt(k,KINDS[k],a?a.k===k:k==='broker')).join('')+'</select>');
+ h+=field('מס על הרווח במשיכה (%)','<input class="in num" id="aeT" type="number" step="1" min="0" max="50" value="'+(a?Rn((+a.tax||0)*100):25)+'">');
+ h+=field('נזילות','<select class="in" id="aeL">'+opt('1','נזיל',!a||+a.liq)+opt('0','לטווח ארוך',a&&!+a.liq)+'</select>');
+ h+=field('דמי ניהול מהצבירה (%)','<input class="in num" id="aeFs" type="number" step="0.01" min="0" max="5" value="'+(a?+a.fs||0:0)+'">');
+ h+=field('דמי ניהול מהפקדה (%)','<input class="in num" id="aeFd" type="number" step="0.01" min="0" max="10" value="'+(a?+a.fd||0:0)+'">')+'</div>';
+ h+='<div class="pn" style="margin-top:14px;background:var(--s2)"><h2>נקודת הפתיחה של ההפקדות</h2><div class="sub">כמה הפקדת בסך הכל עד סוף חודש מסוים. הפקדות ומשיכות שנרשמות אחרי החודש הזה מתווספות לבד, ומה שנרשם לפניו משמש לחישוב התשואה בעבר.</div><div class="fg">';
+ h+=field('הפקדות עד סוף','<select class="in" id="aeBm">'+opt('','אין, לפי ההפקדות שנרשמו',!(a&&a.bm))+M.map(m=>opt(m,mLabel(m),a&&a.bm===m)).join('')+'</select>');
+ h+=field('סך הכל הופקד (₪)','<input class="in num" id="aeBd" type="number" min="0" step="1" value="'+(a&&a.bm?Rn(a.bd):'')+'">')+'</div></div>';
+ if(a)h+='<div class="small muted" style="margin-top:10px">חשבונות בחיסכון: '+accsOf(id).map(c=>esc(c.n)).join(', ')+'</div>';
+ h+='<div class="mf"><button class="b bp" onclick="saveAsset('+(a?'\''+id+'\'':'null')+')">שמירה</button>'+(a&&a.id!=='osh'?'<button class="b bd" onclick="archiveAsset(\''+id+'\')">'+(a.arc?'החזרה לרשימה':'הסתרה (חיסכון שנסגר)')+'</button>':'')+'<button class="b" onclick="closeMo()">ביטול</button></div>';mo(h)}
+function aeKind(){const k=$('aeK').value,d=KDEF[k]||KDEF.other;$('aeT').value=Rn(d.tax*100);$('aeL').value=String(d.liq)}
+async function saveAsset(id){const n=$('aeN').value.trim();if(!n)return toast('צריך שם לחיסכון');const k=$('aeK').value,tax=Math.min(.5,Math.max(0,(+$('aeT').value||0)/100)),liq=+$('aeL').value,fs=Math.max(0,+$('aeFs').value||0),fd=Math.max(0,+$('aeFd').value||0),bm=$('aeBm').value||null,bd=Math.max(0,+$('aeBd').value||0);
+ const assets=clone(S.set.assets),accounts=clone(S.set.accounts);
+ if(id){const a=assets.find(x=>x.id===id);Object.assign(a,{n:n,k:k,tax:tax,liq:liq,fs:fs,fd:fd,bm:bm,bd:bm?bd:0});const own=accounts.filter(c=>c.as===id);if(own.length===1&&own[0].id===id)own[0].n=n}
+ else{const nid='a_'+uid8();assets.push({id:nid,n:n,k:k,tax:tax,liq:liq,fs:fs,fd:fd,bd:bm?bd:0,bm:bm,col:COLORS[assets.length%COLORS.length]});accounts.push({id:nid,n:n,as:nid})}
+ if(await saveSet({assets:assets,accounts:accounts})){logAct('asset',(id?'עדכון':'הוספת')+' חיסכון: '+n);buildIndex();closeMo();toast('נשמר');render(true)}}
+async function archiveAsset(id){const assets=clone(S.set.assets),a=assets.find(x=>x.id===id),M=IX.months,v=M.length?val(id,M[M.length-1]):0;
+ if(!a.arc&&v>0&&!confirm('יש בחיסכון הזה עדיין יתרה של '+nf(v)+' ₪. הסתרה תוריד אותו מהסכומים. להמשיך?'))return;
+ a.arc=a.arc?0:1;await saveSet({assets:assets});closeMo();toast(a.arc?'החיסכון הוסתר. הנתונים שלו נשמרו.':'החיסכון חזר לרשימה');render(true)}
+function balEditor(m){const M=IX.months,last=M[M.length-1],pm=addM(curM(),-1);const target=m||(last&&last<pm?addM(last,1):(last||pm));
+ let h='<h3>עדכון יתרות</h3><div class="sub">היתרה בסוף החודש בכל חשבון, כמו שמופיעה באתר של הבנק או הקופה.</div><div class="row" style="margin-bottom:12px"><input class="in num" id="beM" type="month" value="'+target+'" style="max-width:180px" onchange="balFill()"><button class="b bs" onclick="balCopyPrev()">העתקה מהחודש הקודם</button><button class="b bs bd" id="beDel" onclick="balDelete()">מחיקת החודש</button></div>';
+ h+='<div id="beRows"></div><div class="mf"><button class="b bp" onclick="balSave()">שמירה</button><button class="b" onclick="closeMo()">ביטול</button></div>';mo(h,true);balFill()}
+function balFill(){const m=$('beM').value;if(!isMonth(m))return;const cur=S.bal.m[m]||{},prevM=IX.months.filter(x=>x<m).pop(),prev=prevM?S.bal.m[prevM]:null;if($('beDel'))$('beDel').hidden=!S.bal.m[m];
+ let h='<div class="tw"><table><thead><tr><th>חשבון</th><th>'+(prevM?mLabel(prevM):'חודש קודם')+'</th><th>'+mLabel(m)+'</th><th>שינוי</th></tr></thead><tbody>';
+ A().forEach(a=>accsOf(a.id).forEach(c=>{const pv=prev?prev[c.id]:null,cv=cur[c.id];h+='<tr><td>'+esc(c.n)+'</td><td class="dim">'+(pv!=null?fmt(pv):'—')+'</td><td><input class="in num" style="max-width:150px" type="number" inputmode="decimal" step="any" data-acc="'+esc(c.id)+'" data-prev="'+(pv!=null?pv:'')+'" value="'+(cv!=null?cv:'')+'" oninput="balDiff(this)"></td><td class="small" id="bd_'+esc(c.id)+'"></td></tr>'}));
+ $('beRows').innerHTML=h+'</tbody></table></div>';document.querySelectorAll('#beRows input').forEach(balDiff)}
+function balDiff(i){const pv=i.dataset.prev,v=i.value,o=$('bd_'+i.dataset.acc);if(!o)return;if(pv===''||v===''){o.innerHTML='';return}const d=+v-+pv;o.innerHTML='<span class="'+cls(d)+'">'+fmtS(d)+'</span>'}
+function balCopyPrev(){document.querySelectorAll('#beRows input').forEach(i=>{if(i.value===''&&i.dataset.prev!==''){i.value=i.dataset.prev;balDiff(i)}})}
+function balCollect(){const o={};let any=false;document.querySelectorAll('#beRows input').forEach(i=>{if(i.value!==''){const v=+i.value;if(isFinite(v)&&Math.abs(v)<1e9){o[i.dataset.acc]=Math.round(v*100)/100;any=true}}});return any?o:null}
+async function balSave(){const m=$('beM').value;if(!isMonth(m))return toast('בחר חודש');const o=balCollect();if(!o)return toast('לא הוזנו יתרות');if(await setBal(m,o)){logAct('balances','עדכון יתרות '+m);closeMo();toast('היתרות של '+mLabel(m)+' נשמרו');render(true)}}
+async function balDelete(){const m=$('beM').value;if(!S.bal.m[m]||!confirm('למחוק את היתרות של '+mLabel(m)+'? התנועות לא יימחקו.'))return;const old=clone(S.bal.m[m]);await setBal(m,null);logAct('balances','מחיקת יתרות '+m);closeMo();toast('היתרות נמחקו',()=>setBal(m,old).then(()=>render(true)));render(true)}
+
+/* ============ תנועות ============ */
+function txDesc(t){if(t.k==='exp')return(expById(t.c)||{n:t.c}).n;if(t.k==='inc')return(incById(t.c)||{n:'הכנסה'}).n;if(t.k==='dep')return'הפקדה ל'+((assetById(t.as)||{}).n||'חיסכון');if(t.k==='wd')return'משיכה מ'+((assetById(t.as)||{}).n||'חיסכון');
+ if(t.k==='xfer')return'העברה מ'+((assetById(t.af)||{}).n||'')+' ל'+((assetById(t.as)||{}).n||'');if(t.k==='tax')return(t.rf?'החזר ':'')+TAXT[t.tt]+' '+pLabel(t);return'לא מיובא'}
+function txTag(t){if(t.k==='exp'){const c=expById(t.c);if(!c)return'';if(c.t==='b')return'<span class="tg biz">עסקי</span>';if(c.t==='h'&&hoPct()>0)return'<span class="tg biz">חלק עסקי</span>';if(c.t==='s')return'<span class="tg tax">הטבת מס</span>';return''}
+ if(/^(dep|wd|xfer)$/.test(t.k))return'<span class="tg dep">חיסכון</span>';if(t.k==='tax')return'<span class="tg tax">מס</span>';if(t.k==='inc')return'<span class="tg biz">הכנסה</span>';return''}
+function txSign(t){if(t.k==='xfer')return 0;let s=(t.k==='exp'||t.k==='tax'||t.k==='dep')?-1:1;if(t.rf)s=-s;return s}
+function txRow(t){const s=txSign(t),main=t.ds||txDesc(t);return'<div class="li"><span class="d">'+dLabel(t.d)+'</span><span class="t">'+esc(main)+(t.ds?'<br><span class="small dim">'+esc(txDesc(t))+'</span> ':' ')+txTag(t)+(t.b==='side'?' <span class="tg">עסק נוסף</span>':'')+'</span><span class="a '+(s>0?'pos':'')+'">'+(s>0?fmtS(t.a):s<0?fmt(-t.a):fmt(t.a))+'</span><button class="xb" onclick="quickAdd(null,null,\''+t.id+'\')" aria-label="עריכה">✎</button><button class="xb" onclick="delTx(\''+t.id+'\')" aria-label="מחיקה">✕</button></div>'}
+async function delTx(id){const t=S.tx[id];if(!t)return;if(await delTxs([t])){logAct('delete','מחיקה: '+(t.ds||txDesc(t))+' '+t.a);toast('נמחק',()=>putTx(t).then(()=>render(true)));render(true)}}
+function txMonths(){return[...new Set(Object.values(S.tx).filter(t=>t.k!=='ign').map(t=>t.d.slice(0,7)))].sort().reverse()}
+let TXN=150;
+function setTxK(k){TXF.k=k;TXN=150;render(true)}
+function txFiltered(){const q=norm(TXF.q),k=TXF.k;return Object.values(S.tx).filter(t=>{if(t.k==='ign')return false;if(TXF.m!=='all'&&t.d.slice(0,7)!==TXF.m)return false;
+ if(k==='exp'&&t.k!=='exp')return false;if(k==='inc'&&t.k!=='inc')return false;if(k==='sav'&&!/^(dep|wd|xfer)$/.test(t.k))return false;if(k==='tax'&&t.k!=='tax')return false;if(k==='biz'&&!(t.k==='exp'&&(expById(t.c)||{}).t==='b'))return false;
+ if(q&&norm((t.ds||'')+' '+txDesc(t)).indexOf(q)<0)return false;return true}).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:(a.id<b.id?1:-1))}
+function renderTx(){const el=$('p-tx'),ms=txMonths();if(!TXF.m)TXF.m=ms.length?ms[0]:'all';if(TXF.m!=='all'&&ms.indexOf(TXF.m)<0)ms.unshift(TXF.m);
+ let h='<div class="ttl"><h1>תנועות</h1><div class="row"><button class="b bp" onclick="quickAdd()">הוספה</button><button class="b" onclick="importWizard()">ייבוא קובץ</button><button class="b" onclick="exportAcc()">דוח לרו"ח</button></div></div>';
+ h+='<div class="pn" style="padding:12px 14px"><div class="row"><select class="in" style="max-width:180px" aria-label="חודש" onchange="TXF.m=this.value;TXN=150;render(true)">'+opt('all','כל החודשים',TXF.m==='all')+ms.map(m=>opt(m,mLabel(m),TXF.m===m)).join('')+'</select>'+segHTML(TXF.k,[['all','הכל'],['exp','הוצאות'],['biz','עסקיות'],['inc','הכנסות'],['sav','חסכונות'],['tax','מס']],'setTxK')+'<input class="in" style="max-width:220px" placeholder="חיפוש" aria-label="חיפוש" value="'+esc(TXF.q)+'" oninput="TXF.q=this.value;clearTimeout(window._q);window._q=setTimeout(txList,250)"></div></div><div id="txList"></div>';
+ el.innerHTML=h;txList()}
+function txList(){const el=$('txList');if(!el)return;const list=txFiltered();let inc=0,exp=0,dep=0,tax=0;
+ list.forEach(t=>{const v=(t.rf?-1:1)*t.a;if(t.k==='inc')inc+=v;else if(t.k==='exp')exp+=v;else if(t.k==='dep')dep+=t.a;else if(t.k==='wd')dep-=t.a;else if(t.k==='tax')tax+=v});
+ let h='<div class="strip"><div><div class="k">הכנסות</div><div class="v">'+fmt(inc)+'</div></div><div><div class="k">הוצאות</div><div class="v">'+fmt(exp)+'</div></div><div><div class="k">לחסכונות, נטו</div><div class="v">'+fmt(dep)+'</div></div><div><div class="k">מסים</div><div class="v">'+fmt(tax)+'</div></div></div>';
+ if(TXF.m!=='all'&&/^(all|exp|biz)$/.test(TXF.k)&&!TXF.q){const sp=spendByCat(TXF.m),bud=S.set.budgets||{},cats=Object.keys(sp).filter(c=>sp[c]>0&&(TXF.k!=='biz'||(expById(c)||{}).t==='b')).sort((a,b)=>sp[b]-sp[a]);
+  if(cats.length){h+='<div class="pn"><h2>הוצאות לפי קטגוריה</h2><div class="sub">'+mLabel(TXF.m)+', מול התקציב אם הגדרת.</div>';
+   cats.slice(0,16).forEach(c=>{const e=expById(c)||{n:c},b=+bud[c]||0,w=b?Math.min(100,sp[c]/b*100):0;h+='<div style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><span>'+esc(e.n)+(e.t==='b'?' <span class="tg biz">עסקי</span>':'')+'</span><span>'+fmt(sp[c])+(b?' <span class="small dim">מתוך '+fmt(b)+'</span>':'')+'</span></div>'+(b?'<div class="bar'+(sp[c]>b?' over':'')+'"><i style="width:'+w.toFixed(1)+'%"></i></div>':'')+'</div>'});
+   h+='<button class="b bs" onclick="SETTAB=\'fixed\';go(\'set\')">הגדרת תקציב</button></div>'}}
+ h+='<div class="pn">'+(list.length?list.slice(0,TXN).map(txRow).join('')+(list.length>TXN?'<div style="text-align:center;margin-top:10px"><button class="b" onclick="TXN+=200;txList()">עוד '+(list.length-TXN)+' תנועות</button></div>':''):'<div class="empty">אין תנועות להצגה. אפשר להוסיף ידנית או לייבא קובץ מהבנק.</div>')+'</div>';el.innerHTML=h}
+
+/* ============ הוספה ועריכה ============ */
+let QA={k:'exp',pre:{},edit:null};
+function quickAdd(k,pre,editId){const t=editId?S.tx[editId]:null;if(t&&t.k==='xfer'){mo('<h3>העברה בין חסכונות</h3><div class="sub">'+esc(txDesc(t))+', '+fmt(t.a)+', '+dLabel(t.d)+'. אפשר למחוק ולרשום מחדש כהפקדה או משיכה.</div><div class="mf"><button class="b bd" onclick="closeMo();delTx(\''+t.id+'\')">מחיקה</button><button class="b" onclick="closeMo()">סגירה</button></div>');return}
+ QA={k:t?t.k:(k||'exp'),pre:pre||{},edit:t};renderQA()}
+function renderQA(){const t=QA.edit,p=QA.pre||{},k=QA.k,kinds=[['exp','הוצאה'],['inc','הכנסה'],['dep','הפקדה'],['wd','משיכה'],['tax','מס']];
+ let h='<h3>'+(t?'עריכת תנועה':'תנועה חדשה')+'</h3>'+(p.note?'<div class="sub">'+esc(p.note)+'</div>':'')+'<div style="margin:8px 0 14px">'+segHTML(k,kinds,'qaKind')+'</div><div class="fg">';
+ h+=field('סכום (₪)','<input class="in num" id="qaA" type="number" inputmode="decimal" min="0" step="0.01" value="'+(t?t.a:(p.a||''))+'" autofocus>');
+ h+=field('תאריך','<input class="in num" id="qaD" type="date" value="'+(t?t.d:(p.d||todayS()))+'"'+(k==='tax'?' onchange="qaPeriod()"':'')+'>');
+ if(k==='exp'){const cur=t?t.c:(p.c||LASTCAT),grp=(ty,l)=>'<optgroup label="'+l+'">'+EXP.filter(e=>e.t===ty).map(e=>opt(e.id,e.n,cur===e.id)).join('')+'</optgroup>';h+=field('קטגוריה','<select class="in" id="qaC" onchange="qaHint()">'+grp('p','אישי')+grp('b','עסקי, מוכר במס')+grp('h','הוצאות הבית (חלק יחסי לחדר עבודה)')+grp('s','הטבות מס')+'</select>')}
+ if(k==='inc'){h+=field('סוג','<select class="in" id="qaC">'+INC.map(i=>opt(i.id,i.n,(t?t.c:(p.c||'client'))===i.id)).join('')+'</select>');h+=field('מע"מ','<select class="in" id="qaV">'+opt('0','הסכום כולל מע"מ',!(t&&t.vz))+opt('1','בלי מע"מ (ייצוא שירות)',!!(t&&t.vz))+'</select>')}
+ if(k==='dep'||k==='wd'){const cur=t?t.as:p.as;h+=field(k==='dep'?'לאיזה חיסכון':'מאיזה חיסכון','<select class="in" id="qaS">'+invAssets().map(a=>opt(a.id,a.n,cur===a.id)).join('')+'</select>')}
+ if(k==='tax'){h+=field('סוג','<select class="in" id="qaT" onchange="qaPeriod()">'+Object.keys(TAXT).map(x=>opt(x,TAXT[x],(t?t.tt:(p.tt||'vat'))===x)).join('')+'</select>');h+=field('עבור תקופה (החודש הראשון)','<input class="in num" id="qaP" type="month" value="'+(t&&t.p?t.p:'')+'">');h+=field('כיוון','<select class="in" id="qaR">'+opt('0','תשלום',!(t&&t.rf))+opt('1','החזר שקיבלתי',!!(t&&t.rf))+'</select>')}
+ if(k==='exp'||k==='inc'){const lines=((S.set&&S.set.bizLines)||[]).filter(b=>+b.on);if(lines.length>1)h+=field('שייך ל','<select class="in" id="qaB">'+lines.map(b=>opt(b.id,b.n,((t&&t.b)||'main')===b.id)).join('')+'</select>')}
+ h+=field('תיאור','<input class="in" id="qaDs" maxlength="120" value="'+esc(t?(t.ds||''):(p.ds||''))+'" placeholder="לא חובה">')+'</div>';
+ if(k==='exp')h+='<div class="small dim" id="qaHint" style="margin-top:8px"></div>';
+ h+='<div class="mf"><button class="b bp" onclick="qaSave()">'+(t?'שמירת שינויים':'הוספה')+'</button><button class="b" onclick="closeMo()">ביטול</button>'+(t?'<button class="b bd" onclick="closeMo();delTx(\''+t.id+'\')">מחיקה</button>':'')+'</div>';
+ mo(h);if(k==='tax')qaPeriod(true);if(k==='exp')qaHint()}
+function qaKind(k){QA.pre=Object.assign({},QA.pre,{a:$('qaA')?$('qaA').value:'',d:$('qaD')?$('qaD').value:''});if(QA.edit)QA.edit=Object.assign({},QA.edit,{k:k});QA.k=k;renderQA()}
+function qaPeriod(init){if(!$('qaT')||!$('qaP'))return;if(init&&$('qaP').value)return;$('qaP').value=taxPeriod($('qaT').value,$('qaD').value||todayS()).p}
+function qaHint(){const e=expById($('qaC').value),el=$('qaHint');if(!e||!el)return;const a=+$('qaA').value||0;let t='';
+ if(e.t==='b')t='מוכר במס: '+Math.round(e.d*100)+'%'+(e.v?', כולל קיזוז מע"מ':', בלי קיזוז מע"מ')+(e.y?'. ציוד מעל 1,200 ₪ נפרס על '+e.y+' שנים (פחת).':'.')+(e.v&&a>5000&&($('qaD').value||'')>='2026'?' בחשבונית מעל 5,000 ₪ חייב להופיע מספר הקצאה כדי לקזז מע"מ.':'');
+ else if(e.t==='h')t=hoPct()>0?'מוכר לפי חדר העבודה: '+Math.round(hoPct()*100)+'%.':'אפשר להכיר בחלק מההוצאה אם יש חדר עבודה בבית. מגדירים בהגדרות.';
+ else if(e.t==='s')t=e.id==='ins_disab'?'מנוכה מההכנסה החייבת, עד 3.5% מההכנסה.':e.id==='ins_life'?'מקנה זיכוי של 25% מהפרמיה.':'זיכוי של 35% כשסך התרומות בשנה עובר 200 ₪, לעמותות מוכרות.';
+ el.textContent=t}
+async function qaSave(){const k=QA.k,old=QA.edit&&S.tx[QA.edit.id]?S.tx[QA.edit.id]:null,a=+$('qaA').value,d=$('qaD').value;if(!(a>0)||a>1e8)return toast('הסכום לא תקין');if(!isDate(d))return toast('התאריך לא תקין');
+ const t={id:old?old.id:'m'+uid8(),d:d,k:k,a:Math.round(a*100)/100,s:old?old.s:'m'};const ds=$('qaDs').value.trim().slice(0,120);if(ds)t.ds=ds;if(old&&old.h)t.h=old.h;if(old&&old.cm)t.cm=old.cm;
+ if(k==='exp'){t.c=$('qaC').value;LASTCAT=t.c;if(expById(t.c).t==='b')t.b=$('qaB')?$('qaB').value:'main';if(old&&old.k==='exp'&&old.rf)t.rf=1}
+ if(k==='inc'){t.c=$('qaC').value;if($('qaV').value==='1')t.vz=1;t.b=$('qaB')?$('qaB').value:'main';if(old&&old.k==='inc'&&old.rf)t.rf=1}
+ if(k==='dep'||k==='wd'){t.as=$('qaS').value;if(!t.as)return toast('צריך לבחור חיסכון')}
+ if(k==='tax'){t.tt=$('qaT').value;const tp=taxPeriod(t.tt,d),pv=$('qaP').value;t.pm=tp.pm;t.p=tp.pm===12?((isMonth(pv)?pv:tp.p).slice(0,4)+'-01'):(isMonth(pv)?pv:tp.p);if($('qaR').value==='1')t.rf=1}
+ if(await putTx(t,old)){logAct(old?'edit':'add',(old?'עריכה: ':'הוספה: ')+txDesc(t)+' '+t.a);closeMo();toast(old?'השינויים נשמרו':'נוסף',old?null:()=>delTxs([t]).then(()=>render(true)));render(true)}}
+
+/* ============ ייבוא קבצים ============ */
+let IMP=null;
+function importWizard(after){IMP={rows:[],src:'',f:'all',learn:true,newRules:{},after:after||null};
+ mo('<h3>ייבוא תנועות</h3><div class="sub">קובץ שהורדת מאתר הבנק, מחברת האשראי או מתוכנת החשבוניות (Excel או CSV). הקובץ נקרא רק במכשיר שלך ולא נשמר בשום מקום.</div><div class="pn" style="background:var(--s2);text-align:center;padding:26px"><input type="file" id="impF" accept=".xls,.xlsx,.csv,.txt,.html,.htm" style="display:none" onchange="impRead(this.files[0])"><button class="b bp" onclick="$(\'impF\').click()">בחירת קובץ</button><div class="small dim" style="margin-top:10px">עו"ש (לאומי ובנקים אחרים), כרטיסי אשראי (מקס, ישראכרט, כאל, לאומי), וייצוא מסמכים מחשבונית ירוקה ודומות. מתוכנת החשבוניות נקלטות רק קבלות, כדי שלא תהיה כפילות עם החשבוניות.</div></div><div id="impMsg" class="small"></div><div class="mf"><button class="b" onclick="impClose()">ביטול</button></div>',true)}
+function impClose(){const a=IMP&&IMP.after;closeMo();if(a)a()}
+function loadXLSX(){return new Promise((res,rej)=>{if(window.XLSX)return res();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=()=>res();s.onerror=()=>rej(new Error('רכיב קריאת ה-Excel לא נטען. בדוק את החיבור לאינטרנט.'));document.head.appendChild(s)})}
+function decodeText(buf){try{return new TextDecoder('utf-8',{fatal:true}).decode(buf).replace(/^\uFEFF/,'')}catch(e){try{return new TextDecoder('windows-1255').decode(buf)}catch(e2){return new TextDecoder().decode(buf)}}}
+function parseHTMLTable(html){const doc=new DOMParser().parseFromString(html,'text/html'),out=[];doc.querySelectorAll('tr').forEach(tr=>{const r=[];tr.querySelectorAll('th,td').forEach(td=>r.push(td.textContent.replace(/\s+/g,' ').trim()));if(r.some(x=>x))out.push(r)});return out}
+function parseCSV(text){const sample=text.slice(0,6000),tabs=(sample.match(/\t/g)||[]).length,commas=(sample.match(/,/g)||[]).length,semis=(sample.match(/;/g)||[]).length,d=tabs>=commas&&tabs>=semis?'\t':semis>commas?';':',';
+ const rows=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const ch=text[i];
+  if(q){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=ch}
+  else if(ch==='"'&&cell.trim()==='')q=true;else if(ch===d){row.push(cell.trim());cell=''}else if(ch==='\n'){row.push(cell.trim());rows.push(row);row=[];cell=''}else if(ch!=='\r')cell+=ch}
+ if(cell||row.length){row.push(cell.trim());rows.push(row)}return rows}
+function parseDate(v){if(v==null||v==='')return null;const two=n=>String(n).padStart(2,'0');
+ if(v instanceof Date&&!isNaN(v))return v.getFullYear()+'-'+two(v.getMonth()+1)+'-'+two(v.getDate());
+ if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.getUTCFullYear()+'-'+two(d.getUTCMonth()+1)+'-'+two(d.getUTCDate())}
+ const s=String(v).trim();let m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?!\d)/);if(m){let y=+m[3];if(y<100)y+=2000;const mo=+m[2],d=+m[1];if(mo<1||mo>12||d<1||d>31||y<2000||y>2100)return null;return y+'-'+two(mo)+'-'+two(d)}
+ m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[1]+'-'+m[2]+'-'+m[3]:null}
+const hcell=s=>norm(s).replace(/[^\u0590-\u05FFa-z0-9 ]/g,'').trim();
+function mapHeader(r){const h=r.map(hcell),find=pats=>{for(const p of pats){const i=h.findIndex(x=>x&&p.test(x));if(i>=0)return i}return -1};
+ const date=find([/^תאריך (העסקה|עסקה|רכישה)/,/^תאריך$/,/^תאריך ערך$/,/^תאריך(?!.*חיוב)/,/^date/]);if(date<0)return null;
+ const charge=find([/תאריך חיוב/]),doc=find([/סוג (ה)?מסמך/]),docno=find([/מספר (ה)?מסמך/]),client=find([/^לקוח|שם הלקוח/]),
+  desc=find([/שם בית (ה)?עסק/,/בית (ה)?עסק/,/^תיאור|^תאור/,/^פרטים|^הפעולה|^description/]),amtC=find([/סכום (ה)?חיוב/]),amt=find([/^סכום$/,/^סכום (ה)?עסקה$/,/^סכום(?! עסקה מקורי)/,/^amount/]),
+  debit=find([/^בחובה|^חובה/]),credit=find([/^בזכות|^זכות/]),cur=find([/^מטבע$/,/^מטבע חיוב/]);
+ if(doc>=0&&amt>=0)return{type:'docs',date:date,doc:doc,docno:docno,client:client,desc:desc,amt:amt,cur:cur};
+ if(debit>=0||credit>=0)return{type:'bank',date:date,desc:desc,debit:debit,credit:credit};
+ if(amtC>=0||amt>=0)return{type:'card',date:date,charge:charge,desc:desc,amt:amtC>=0?amtC:amt};return null}
+function isHeaderRow(r){const c=r.map(hcell);return c.some(x=>/^תאריך|^date/.test(x))&&c.filter(x=>x&&!/^\d/.test(x)).length>=3&&!r.some(x=>parseDate(x))}
+function extractRows(rows){let map=null,type='';const out=[];
+ for(const r of rows){if(!r||!r.length)continue;if(isHeaderRow(r)){const m=mapHeader(r);if(m){map=m;type=m.type}continue}if(!map)continue;
+  const d=parseDate(r[map.date]);if(!d)continue;const desc=map.desc>=0?String(r[map.desc]==null?'':r[map.desc]).trim():'';
+  if(map.type==='bank'){const db=map.debit>=0?num(r[map.debit]):NaN,cr=map.credit>=0?num(r[map.credit]):NaN,v=(isFinite(cr)?cr:0)-(isFinite(db)?db:0);if(!v)continue;out.push({d:d,desc:desc,amt:Math.round(v*100)/100})}
+  else if(map.type==='card'){const a=num(r[map.amt]);if(!isFinite(a)||!a)continue;const cd=map.charge>=0?parseDate(r[map.charge]):null;out.push({d:d,desc:desc,amt:-Math.round(a*100)/100,cm:cd?cd.slice(0,7):null})}
+  else if(map.type==='docs'){const dt=norm(r[map.doc]);if(!/קבלה|זיכוי/.test(dt))continue;if(map.cur>=0&&r[map.cur]&&!/ils|שח|₪|nis/i.test(String(r[map.cur])))continue;let a=num(r[map.amt]);if(!isFinite(a)||!a)continue;if(/זיכוי/.test(dt))a=-Math.abs(a);
+   const no=map.docno>=0?String(r[map.docno]).trim():'',cl=map.client>=0?String(r[map.client]||'').trim():'';out.push({d:d,desc:[cl,desc].filter(Boolean).join(' — ').slice(0,120),amt:Math.round(a*100)/100,doc:1,h:no?'doc|'+norm(r[map.doc])+'|'+parseInt(no,10):null})}}
+ return{rows:out,type:type}}
+async function impRead(f){if(!f)return;$('impMsg').textContent='קורא את הקובץ…';
+ try{const buf=await f.arrayBuffer(),b=new Uint8Array(buf.slice(0,4));let rows;
+  if((b[0]===0x50&&b[1]===0x4B)||(b[0]===0xD0&&b[1]===0xCF)){await loadXLSX();const wb=XLSX.read(buf,{type:'array',cellDates:true});rows=[];wb.SheetNames.forEach(n=>{rows=rows.concat(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}))})}
+  else{const txt=decodeText(buf);rows=/<table/i.test(txt)?parseHTMLTable(txt):parseCSV(txt)}
+  const res=extractRows(rows);if(!res.rows.length){$('impMsg').innerHTML='<span class="neg">לא מצאתי בקובץ טבלת תנועות. ודא שזה קובץ שהורד מאתר הבנק, מחברת האשראי או מתוכנת החשבוניות.</span>';return}
+  IMP.src=({bank:'עו"ש',card:'כרטיס אשראי',docs:'מסמכי הכנסה'})[res.type]||'';IMP.rows=classify(res.rows);IMP.f='all';impReview()}
+ catch(e){console.error(e);$('impMsg').innerHTML='<span class="neg">קריאת הקובץ נכשלה: '+esc(e.message)+'</span>'}}
+function softDupRow(r,t){const k0=t?t.split(':')[0]:(r.amt>0?'inc':null);if(!k0||k0==='ign')return false;const k=k0==='dep'||k0==='wd'?(r.amt<0?'dep':'wd'):k0,a=Math.abs(r.amt),d0=new Date(r.d);
+ for(const id in S.tx){const x=S.tx[id];if(x.k!==k)continue;if(x.h&&k!=='inc')continue;if(Math.abs(x.a-a)>Math.max(1,a*.01))continue;if(Math.abs(new Date(x.d)-d0)/864e5<=(x.s==='l'?20:12))return true}return false}
+function classify(rows){const hs=new Set(Object.values(S.tx).map(t=>t.h).filter(Boolean)),seen=new Set();
+ return rows.map((r,i)=>{const h=r.h||hashRow(r.d,r.amt,r.desc),dup=hs.has(h)||seen.has(h);seen.add(h);const t=r.doc?'inc:client':matchRule(r.desc,r.amt),soft=!dup&&softDupRow(r,t);
+  return{i:i,d:r.d,desc:r.desc,amt:r.amt,cm:r.cm||null,h:h,t:t,dup:dup,soft:soft,on:!!t&&t!=='ign'&&!dup&&!soft}})}
+function impVisible(){const f=IMP.f||'all';return IMP.rows.filter(r=>(!IMP.from||r.d>=IMP.from)&&(f==='all'||(f==='un'&&!r.t&&!r.dup)||(f==='on'&&r.on)))}
+function impCount(){return IMP.rows.filter(r=>r.on&&(!IMP.from||r.d>=IMP.from)).length}
+function impReview(){const R=IMP.rows,n=R.length,dup=R.filter(r=>r.dup).length,soft=R.filter(r=>r.soft).length,un=R.filter(r=>!r.t&&!r.dup).length,ds=R.map(r=>r.d).sort();
+ let h='<h3>בדיקת התנועות'+(IMP.src?' ('+IMP.src+')':'')+'</h3><div class="sub">'+n+' שורות, מ'+dLabel(ds[0])+' עד '+dLabel(ds[ds.length-1])+'. '+(dup?dup+' כבר קיימות ולא ייובאו שוב. ':'')+(soft?soft+' נראות כמו תנועה שכבר נרשמה, ולכן לא סימנתי אותן. ':'')+(un?un+' לא סווגו. לחיצה על הסיווג משנה אותו.':'')+'</div>';
+ h+='<div class="row" style="margin-bottom:10px">'+segHTML(IMP.f||'all',[['all','הכל'],['un','לא מסווגות ('+un+')'],['on','מסומנות לייבוא']],'impFilter')+'<label class="small row" style="gap:6px"><input type="checkbox" '+(IMP.learn!==false?'checked':'')+' onchange="IMP.learn=this.checked">לזכור את הסיווגים שלי</label><label class="small row" style="gap:6px">רק מתאריך<input class="in num" type="date" style="max-width:155px;min-height:32px;padding:4px 8px" value="'+(IMP.from||'')+'" onchange="impFrom(this.value)"></label></div>';
+ h+='<div class="tw" style="max-height:52vh;overflow:auto"><table><thead><tr><th>לייבא</th><th>תאריך</th><th>תיאור</th><th>סכום</th><th>סיווג</th></tr></thead><tbody id="impBody"></tbody></table></div>';
+ h+='<div class="mf"><button class="b bp" id="impGo" onclick="impSave()">ייבוא '+impCount()+' תנועות</button><button class="b" onclick="impClose()">ביטול</button></div>';mo(h,true);impBody()}
+function impBody(){const v=impVisible(),rows=v.slice(0,400);$('impBody').innerHTML=rows.map(r=>'<tr><td><input type="checkbox" aria-label="לייבא" '+(r.on?'checked':'')+(r.dup?' disabled':'')+' onchange="impToggle('+r.i+',this.checked)"></td><td class="small">'+dLabel(r.d)+'</td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis">'+esc(r.desc)+(r.dup?' <span class="tg">קיים</span>':r.soft?' <span class="tg bad">אולי כבר נרשם</span>':'')+'</td><td class="'+(r.amt>0?'pos':'')+'">'+fmtS(r.amt)+'</td><td><button class="b bs" onclick="impPick('+r.i+')"'+(r.dup?' disabled':'')+'>'+esc(tLabel(r.t))+'</button></td></tr>').join('')+(v.length>400?'<tr><td colspan="5" class="small dim">מוצגות 400 שורות. אפשר לסנן לפי תאריך.</td></tr>':'')}
+function impFilter(f){IMP.f=f;impReview()}
+function impFrom(v){IMP.from=v;impReview()}
+function impToggle(i,on){IMP.rows[i].on=on;const b=$('impGo');if(b)b.textContent='ייבוא '+impCount()+' תנועות'}
+function targetGroups(amt){const out=amt<0;return[['הוצאה',EXP.map(e=>['exp:'+e.id,e.n])],['הכנסה',INC.map(i=>['inc:'+i.id,i.n])],[out?'הפקדה לחיסכון':'משיכה מחיסכון',invAssets().map(a=>[(out?'dep:':'wd:')+a.id,a.n])],['מס',Object.keys(TAXT).map(k=>['tax:'+k+(out?'':':rf'),(out?'תשלום ':'החזר ')+TAXT[k]])],['אחר',[['ign','לא לייבא (חיוב כרטיס או העברה פנימית)']]]]}
+function impPick(i){const r=IMP.rows[i];IMP.pick=i;let h='<h3>סיווג</h3><div class="sub">'+esc(r.desc)+', '+fmtS(r.amt)+', '+dLabel(r.d)+'</div><input class="in" placeholder="חיפוש קטגוריה" oninput="pickFilter(this.value)" autofocus><div class="pick" id="pickL">';
+ targetGroups(r.amt).forEach(g=>{h+='<div class="gh">'+g[0]+'</div>'+g[1].map(x=>'<button data-s="'+esc(norm(x[1]))+'" onclick="impSet(\''+x[0]+'\')">'+esc(x[1])+'</button>').join('')});
+ h+='</div><div class="mf"><button class="b" onclick="impReview()">חזרה</button></div>';mo(h,true)}
+function pickFilter(q){q=norm(q);document.querySelectorAll('#pickL button').forEach(b=>{b.hidden=!!q&&b.dataset.s.indexOf(q)<0})}
+function impSet(t){const r=IMP.rows[IMP.pick],key=merchantKey(r.desc);r.t=t;r.on=t!=='ign';r.man=1;
+ if(key&&key.length>=3){IMP.rows.forEach(x=>{if(!x.dup&&!x.man&&merchantKey(x.desc)===key&&Math.sign(x.amt)===Math.sign(r.amt)){x.t=t;x.on=t!=='ign'&&!x.soft}});IMP.newRules[key+'|'+(r.amt<0?'out':'in')]={k:key,t:t,dir:r.amt<0?'out':'in'}}impReview()}
+function rowToTx(r){const p=(r.t||'ign').split(':'),k=p[0],t={id:'i'+uid8()+r.i,d:r.d,a:Math.round(Math.abs(r.amt)*100)/100,ds:String(r.desc||'').slice(0,120),s:'i',h:r.h};if(r.cm&&r.cm!==r.d.slice(0,7))t.cm=r.cm;
+ if(k==='exp'){t.k='exp';t.c=p[1];if(r.amt>0)t.rf=1;if((expById(p[1])||{}).t==='b')t.b='main'}
+ else if(k==='inc'){t.k='inc';t.c=p[1];if(r.amt<0)t.rf=1;if((incById(p[1])||{}).biz)t.b='main'}
+ else if(k==='dep'||k==='wd'){t.k=r.amt<0?'dep':'wd';t.as=p[1]}
+ else if(k==='tax'){t.k='tax';t.tt=p[1];if(p[2]==='rf'||r.amt>0)t.rf=1;Object.assign(t,taxPeriod(p[1],r.d))}
+ else t.k='ign';return t}
+async function impSave(){const inR=r=>!IMP.from||r.d>=IMP.from,sel=IMP.rows.filter(r=>r.on&&r.t&&r.t!=='ign'&&inR(r)),ign=IMP.rows.filter(r=>!r.dup&&r.t==='ign'&&inR(r));
+ if(!sel.length&&!ign.length)return toast('לא סומנו תנועות לייבוא');const b=$('impGo');if(b){b.disabled=true;b.textContent='שומר…'}
+ if(IMP.learn!==false){const nr=Object.values(IMP.newRules);if(nr.length){const rules=clone(S.set.rules||[]);nr.forEach(x=>{const ix=rules.findIndex(y=>norm(y.k)===x.k&&(y.dir||'')===x.dir);if(ix>=0)rules[ix]=x;else rules.push(x)});await saveSet({rules:rules})}}
+ if(await putTxs(sel.map(rowToTx).concat(ign.map(rowToTx)))){logAct('import','ייבוא '+sel.length+' תנועות ('+IMP.src+')');const after=IMP.after;closeMo();toast('יובאו '+sel.length+' תנועות');if(after)after();else render(true)}else if(b){b.disabled=false;b.textContent='ייבוא '+impCount()+' תנועות'}}
+
+/* ============ סגירת חודש ============ */
+let MC=null;
+function fixedLabel(f){return f.k==='dep'?'הפקדה ל'+((assetById(f.as)||{}).n||''):((expById(f.c)||{}).n||'')}
+function fixedDoneIn(f,m){if((S.set.fixedDone||{})[m])return true;return Object.values(S.tx).some(t=>{if(t.d.slice(0,7)!==m)return false;if(t.id==='f'+m.replace('-','')+'_'+f.id)return true;if(f.k==='dep')return t.k==='dep'&&t.as===f.as;return t.k==='exp'&&t.c===f.c&&Math.abs(t.a-f.a)<=Math.max(5,f.a*.1)})}
+function closeMonth(m){MC={m:m||addM(curM(),-1),step:1};mcRender()}
+function mcGo(s){MC.step=s;mcRender()}
+function mcRender(){const m=MC.m,st=MC.step;let h='<h3>סגירת החודש של '+mLabel(m)+'</h3><div class="steps">'+[1,2,3,4].map(i=>'<i class="'+(i<=st?'on':'')+'"></i>').join('')+'</div>';
+ if(st===1){const n=Object.values(S.tx).filter(t=>t.d.slice(0,7)===m&&t.s==='i'&&t.k!=='ign').length;h+='<h2 style="font-size:16px;margin-bottom:4px">תנועות מהבנק ומהאשראי</h2><div class="sub">מורידים מאתר הבנק ומחברת האשראי את התנועות של החודש (Excel), ומייבאים כאן. אפשר כמה קבצים, אחד אחרי השני. כדאי גם את הקבלות מתוכנת החשבוניות.</div>'+(n?'<div class="al"><span class="ic">✓</span><div class="tx">כבר יובאו '+n+' תנועות לחודש הזה.</div></div>':'')+'<div class="mf"><button class="b bp" onclick="importWizard(mcRender)">ייבוא קובץ</button><button class="b" onclick="mcGo(2)">'+(n?'המשך':'דילוג, אין לי קובץ')+'</button></div>'}
+ if(st===2){const fx=(S.set.fixed||[]).filter(f=>f.on!==0);h+='<h2 style="font-size:16px;margin-bottom:4px">הפקדות ותשלומים קבועים</h2><div class="sub">מה שיוצא באופן קבוע כל חודש. מה שכבר נרשם (למשל מהייבוא) לא יירשם שוב.</div>';
+  if(!fx.length)h+='<div class="al"><span class="ic">ⓘ</span><div class="tx">לא הוגדרו פריטים קבועים. אפשר להוסיף בהגדרות, בלשונית "קבועים ותקציב".</div></div>';
+  fx.forEach((f,i)=>{const done=fixedDoneIn(f,m);h+='<div class="li"><input type="checkbox" id="mcf'+i+'" aria-label="לרשום" '+(done?'disabled':'checked')+'><span class="t">'+esc(f.ds||fixedLabel(f))+'</span><span class="a">'+fmt(f.a)+'</span><span class="small '+(done?'pos':'dim')+'">'+(done?'כבר נרשם':'יירשם')+'</span></div>'});
+  h+='<div class="mf"><button class="b bp" onclick="mcFixed()">המשך</button><button class="b" onclick="mcGo(1)">חזרה</button></div>'}
+ if(st===3)h+='<h2 style="font-size:16px;margin-bottom:4px">יתרות בסוף החודש</h2><div class="sub">"העתקה מהחודש הקודם" ממלאת את השדות הריקים, ואז מעדכנים רק מה שהשתנה. אם יתרה קופצת בלי הפקדה רשומה, תראה את זה בסיכום.</div><input type="hidden" id="beM" value="'+m+'"><div class="row" style="margin-bottom:8px"><button class="b bs" onclick="balCopyPrev()">העתקה מהחודש הקודם</button></div><div id="beRows"></div><div class="mf"><button class="b bp" onclick="mcBal()">שמירה והמשך</button><button class="b" onclick="mcGo(2)">חזרה</button></div>';
+ if(st===4){const T=monthTotals(m),M=IX.months,pm=M.filter(x=>x<m).pop(),inv=invAssets().map(a=>a.id),x=pm&&S.bal.m[m]?mret(inv,pm,m):null,all=A().map(a=>a.id),nw=S.bal.m[m]?valMany(all,m):null,nwP=pm?valMany(all,pm):null,sp=suspects().filter(s=>s.m===m);
+  h+='<h2 style="font-size:16px;margin-bottom:8px">סיכום החודש</h2><div class="kv"><span>הכנסות</span><span>'+fmt(T.inc)+'</span></div><div class="kv"><span>הוצאות</span><span>'+fmt(T.exp)+'</span></div><div class="kv"><span>מתוכן עסקיות</span><span>'+fmt(T.biz)+'</span></div><div class="kv"><span>הפקדות לחסכונות, נטו</span><span>'+fmt(T.dep-T.wd)+'</span></div><div class="kv"><span>מסים ששולמו</span><span>'+fmt(T.tax)+'</span></div>';
+  if(x)h+='<div class="kv strong"><span>רווח מהשוק בחסכונות</span><span class="'+cls(x.g)+'">'+fmtS(x.g)+(x.r!=null?' ('+pct(x.r)+')':'')+'</span></div>';
+  if(nw!=null&&nwP!=null)h+='<div class="kv strong"><span>שינוי בשווי הכולל</span><span class="'+cls(nw-nwP)+'">'+fmtS(nw-nwP)+'</span></div>';
+  if(pm&&S.bal.m[m]){const oc=valMany(cashIds(),m)-valMany(cashIds(),pm),ex=T.inc-T.exp-T.tax-(T.dep-T.wd);h+='<div class="kv"><span>שינוי בעו"ש</span><span>'+fmtS(oc)+'</span></div><div class="small dim" style="margin-top:6px">התנועות שנרשמו מסבירות '+fmtS(ex)+'. '+(Math.abs(oc-ex)>500?'הפער ('+fmtS(oc-ex)+') נובע בדרך כלל מחיוב כרטיס האשראי שיורד בחודש שאחרי, או מתנועות שלא יובאו.':'כמעט הכל מוסבר.')+'</div>'}
+  if(sp.length)h+='<div class="al warn" style="margin-top:10px"><span class="ic">⚠</span><div class="tx">'+sp.map(s=>esc(assetById(s.as).n)).join(', ')+': שינוי חריג החודש. אם הייתה הפקדה או משיכה, כדאי לרשום אותה.</div></div>';
+  h+='<div class="mf"><button class="b bp" onclick="mcDone()">סגירת החודש</button><button class="b" onclick="mcGo(3)">חזרה</button></div>'}
+ mo(h,true);if(st===3)balFill()}
+async function mcFixed(){const m=MC.m,fx=(S.set.fixed||[]).filter(f=>f.on!==0),add=[];fx.forEach((f,i)=>{const c=$('mcf'+i);if(c&&c.checked&&!c.disabled){const t={id:'f'+m.replace('-','')+'_'+f.id,d:m+'-15',k:f.k,a:f.a,ds:f.ds||fixedLabel(f),s:'f'};if(f.k==='dep')t.as=f.as;else{t.c=f.c;if((expById(f.c)||{}).t==='b')t.b='main'}add.push(t)}});
+ if(add.length&&await putTxs(add))logAct('fixed','רישום '+add.length+' פריטים קבועים ל-'+m);mcGo(3)}
+async function mcBal(){const o=balCollect();if(o){if(!await setBal(MC.m,o))return;logAct('balances','עדכון יתרות '+MC.m)}mcGo(4)}
+async function mcDone(){const c=Object.assign({},S.set.closed||{});c[MC.m]=1;await saveSet({closed:c});logAct('close','סגירת חודש '+MC.m);closeMo();toast('החודש נסגר');render(true)}
+
+/* ============ דוח לרו"ח ============ */
+function exportAcc(){const ys=[...new Set(Object.values(S.tx).map(t=>t.d.slice(0,4)))].sort().reverse();if(!ys.length)return toast('אין עדיין תנועות');
+ mo('<h3>דוח לרו"ח</h3><div class="sub">קובץ שנפתח ב-Excel, עם ההכנסות, ההוצאות המוכרות, תשלומי המס וההפקדות לפנסיה ולהשתלמות.</div><div class="fg">'+field('שנה','<select class="in" id="exY">'+ys.map(y=>opt(y,y)).join('')+'</select>')+field('תקופה','<select class="in" id="exP">'+opt('all','כל השנה')+[1,3,5,7,9,11].map(i=>opt(String(i),MN[i-1]+' עד '+MN[i])).join('')+'</select>')+'</div><div class="mf"><button class="b bp" onclick="doExportAcc()">הורדה</button><button class="b" onclick="closeMo()">ביטול</button></div>')}
+function doExportAcc(){const y=$('exY').value,p=$('exP').value,inP=d=>d.slice(0,4)===y&&(p==='all'||+d.slice(5,7)===+p||+d.slice(5,7)===+p+1),ho=hoPct();
+ const rows=[['תאריך','סוג','קטגוריה','תיאור','סכום כולל','מע"מ משוער','סכום מוכר משוער']];
+ Object.values(S.tx).filter(t=>inP(t.d)).sort((a,b)=>a.d<b.d?-1:1).forEach(t=>{const sg=t.rf?-1:1,rt=vatRate(t.d);
+  if(t.k==='inc'){const c=incById(t.c);if(c&&!c.biz)return;const v=t.vz?0:t.a*rt/(1+rt);rows.push([t.d,'הכנסה',c?c.n:'',t.ds||'',sg*t.a,sg*v,sg*(t.a-v)])}
+  else if(t.k==='exp'){const c=expById(t.c);if(!c||c.t==='p'||(c.t==='h'&&!ho))return;const f=c.t==='h'?ho:1,vin=c.v?t.a*rt/(1+rt)*c.v*f:0,ded=c.t==='b'?(t.a-vin)*c.d:c.t==='h'?t.a*f-vin:'';rows.push([t.d,'הוצאה',c.n,t.ds||'',sg*t.a,sg*vin,ded===''?'':sg*ded])}
+  else if(t.k==='tax')rows.push([t.d,t.rf?'החזר מס':'תשלום מס',TAXT[t.tt]+' '+pLabel(t),t.ds||'',sg*t.a,'',''])
+  else if(t.k==='dep'){const a=assetById(t.as);if(a&&(a.k==='pension'||a.k==='hish'))rows.push([t.d,'הפקדה',KINDS[a.k],a.n,t.a,'',''])}});
+ const cell=c=>{const s=typeof c==='number'?String(Math.round(c*100)/100):String(c);return/[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+ dl('\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'finboard_'+y+(p==='all'?'':'_'+p)+'.csv','text/csv;charset=utf-8');logAct('export','דוח לרו"ח '+y);closeMo();toast('הקובץ ירד')}
+function dl(data,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800)}
+
+/* ============ מס ============ */
+function taxYears(){const s=new Set([curM().slice(0,4)]);Object.values(S.tx).forEach(t=>{if(t.k==='inc')s.add(t.d.slice(0,4));if(t.k==='tax')s.add((t.p||t.d).slice(0,4))});Object.keys(((S.set.tp||{}).annual)||{}).forEach(y=>s.add(y));return[...s].sort().reverse()}
+function setTaxY(y){TAXY=y;render(true)}
+function renderTax(){const ys=taxYears();if(!TAXY||ys.indexOf(TAXY)<0)TAXY=ys[0];const y=TAXY,Y=yearAnalysis(y),T=Y.T,cm=curM(),isCur=y===cm.slice(0,4);
+ let h='<div class="ttl"><h1>מס ומקדמות</h1>'+segHTML(y,ys.map(x=>[x,x]),'setTaxY')+'</div>';
+ if(Y.src==='none'){h+='<div class="pn"><h2>אין הכנסות רשומות לשנת '+y+'</h2><div class="sub">בלי הכנסות אי אפשר להעריך כמה מס מגיע. אפשר לייבא את הקבלות מתוכנת החשבוניות, או להזין סיכום שנתי מהדוח של הרו"ח.</div><div class="fg">'+field('מחזור שנתי בלי מע"מ','<input class="in num" id="anRev" type="number" min="0">')+field('הוצאות מוכרות בלי מע"מ','<input class="in num" id="anExp" type="number" min="0">')+'</div><div class="mf"><button class="b bp" onclick="saveAnnual(\''+y+'\')">שמירת הסיכום</button><button class="b" onclick="importWizard()">ייבוא קבלות</button></div></div>'+paymentsPanel(Y);$('p-tax').innerHTML=h;return}
+ const settle=(Y.settleIT||0)+(Y.settleBL||0),missP=Y.itMissing&&Y.itMissing.length;
+ h+='<div class="pn hero"><div class="lbl">'+(isCur?'צפי לסוף '+y+', לפי מה שנרשם'+(Y.proj?' והקצב של החודשים האחרונים':''):'שנת '+y)+(Y.src==='manual'?', לפי הסיכום השנתי שהוזן':'')+'</div><div class="big '+(settle>0?'neg':'pos')+'">'+fmt(Math.abs(settle))+'</div><div class="small muted">'+(settle>0?'צפוי חוב בשומה, מעבר למקדמות (מס הכנסה וביטוח לאומי)':'צפוי החזר בשומה (מס הכנסה וביטוח לאומי)')+'</div>';
+ if(Y.proj)h+='<div class="small dim" style="margin-top:6px">טווח סביר למס ההכנסה השנתי: '+fmt(Y.Tlo.it)+' עד '+fmt(Y.Thi.it)+', לפי השונות בהכנסה בחודשים האחרונים.</div>';
+ if(missP)h+='<div class="al warn" style="margin-top:12px;margin-bottom:0"><span class="ic">!</span><div class="tx">לא נרשמו השנה תשלומי מקדמות למס הכנסה, ולכן הצפי נראה כמו חוב. כדאי לייבא את דפי האשראי או הבנק של החודשים האלה.</div><button class="b bs" onclick="importWizard()">ייבוא קובץ</button></div>';
+ if(isCur&&Y.src==='tx'&&Y.lastInc&&Y.lastInc<addM(cm,-1))h+='<div class="al warn" style="margin-top:12px;margin-bottom:0"><span class="ic">!</span><div class="tx">הכנסות רשומות רק עד '+mLabel(Y.lastInc)+'. את החודשים שאחריו הערכתי לפי הממוצע. כדאי לייבא את הקבלות כדי שהצפי יהיה מדויק.</div><button class="b bs" onclick="importWizard()">ייבוא קבלות</button></div>';
+ h+='</div><div class="grid g3">';
+ h+='<div class="pn"><h2>מס הכנסה</h2><div class="kv"><span>מס שנתי '+(isCur?'צפוי':'מחושב')+'</span><span>'+fmt(T.it)+'</span></div><div class="kv"><span>מקדמות ששולמו</span><span>'+fmt(Y.paid.it)+'</span></div>'+(isCur?'<div class="kv"><span>מקדמות צפויות עד סוף השנה</span><span>'+fmt(Y.itProj)+'</span></div>':'')+(Y.paid.it_set?'<div class="kv"><span>שולם בשומה</span><span>'+fmt(Y.paid.it_set)+'</span></div>':'')+'<div class="kv strong"><span>'+(Y.settleIT>0?'חוב צפוי':'החזר צפוי')+'</span><span class="'+(Y.settleIT>0?'neg':'pos')+'">'+fmt(Math.abs(Y.settleIT))+'</span></div>'+(Y.itMissing&&Y.itMissing.length?'<div class="small neg" style="margin-top:8px">לא נרשמו מקדמות לתקופות: '+Y.itMissing.map(p=>MS[+p.slice(5)-1]+'–'+MS[+addM(p,1).slice(5)-1]).join(', ')+'. עד שיירשמו, החוב כאן גבוה מהמציאות.</div>':'')+advHint(Y)+'</div>';
+ h+='<div class="pn"><h2>ביטוח לאומי</h2><div class="kv"><span>דמי ביטוח שנתיים '+(isCur?'צפויים':'מחושבים')+'</span><span>'+fmt(T.bl.t)+'</span></div><div class="kv"><span>שולם</span><span>'+fmt(Y.paid.bl+Y.paid.bl_set)+'</span></div>'+(isCur?'<div class="kv"><span>צפוי עד סוף השנה</span><span>'+fmt(Y.blProj)+'</span></div>':'')+'<div class="kv strong"><span>'+(Y.settleBL>0?'הפרש לתשלום':'הפרש לזכותך')+'</span><span class="'+(Y.settleBL>0?'neg':'pos')+'">'+fmt(Math.abs(Y.settleBL))+'</span></div>'+(Y.blMissing.length?'<div class="small dim" style="margin-top:6px">לא נמצא תשלום ב: '+Y.blMissing.map(mShort).join(', ')+'. אם שילמת, ייבא או רשום את התשלום.</div>':'')+'</div>';
+ h+='<div class="pn"><h2>מע"מ</h2>'+vatTable(Y)+'</div></div>';
+ if(isCur){const R=taxReserve(),up=upcoming();h+='<div class="grid g2"><div class="pn"><h2>קופת המס</h2><div class="sub">כסף שנמצא אצלך אבל בעצם שייך למס. כדאי שיישאר זמין.'+(missP?' כל עוד המקדמות של השנה לא נרשמו, הסכום כאן גבוה מהמציאות.':'')+'</div>'+(R.items.length?R.items.map(i=>'<div class="kv"><span>'+esc(i[0])+'</span><span>'+fmt(i[1])+'</span></div>').join(''):'<div class="dim small">אין כרגע סכומים פתוחים</div>')+'<div class="kv strong"><span>סה"כ לשמור</span><span>'+fmt(R.total)+'</span></div></div>';
+  h+='<div class="pn"><h2>תשלומים קרובים</h2>'+(up.length?up.map(u=>'<div class="kv"><span>'+dLabel(u.d)+' '+esc(u.t)+'</span><span>'+(u.a!=null?'כ-'+fmt(u.a):'')+'</span></div>').join(''):'<div class="dim small">אין</div>')+'<div class="small dim" style="margin-top:8px">מועדים משוערים. הרו"ח מאשר את התאריכים והסכומים המדויקים.</div></div></div>'+plannerPanel()}
+ h+=breakdownPanel(Y)+paymentsPanel(Y);$('p-tax').innerHTML=h}
+function advHint(Y){if(Y.rateNow==null||Y.rateSug==null||Y.src!=='tx')return'';const d=Y.rateNow-Y.rateSug;let t='<div class="small muted" style="margin-top:8px">שיעור המקדמות שלך: '+(Y.rateNow*100).toFixed(1)+'% מהמחזור. לפי הצפי מספיק '+(Y.rateSug*100).toFixed(1)+'%.';
+ if(Math.abs(d)>0.01&&Math.abs(Y.settleIT)>2000)t+=d>0?' אפשר לבקש מהרו"ח להקטין את המקדמות.':' כדאי לשקול להגדיל אותן, כדי שלא יצטבר חוב.';return t+'</div>'}
+function vatTable(Y){if(!Y.per.length)return'<div class="dim small">אין נתונים</div>';const td=todayS();let h='<div class="tw"><table><thead><tr><th>תקופה</th><th>מחושב</th><th>שולם</th><th></th></tr></thead><tbody>';
+ Y.per.forEach(p=>{const diff=p.due!=null?p.due-p.paid:null,open=p.dd>=td;h+='<tr><td>'+MS[+p.p.slice(5)-1]+'–'+MS[+addM(p.p,1).slice(5)-1]+'</td><td>'+(p.due!=null?fmt(p.due):'—')+'</td><td>'+(p.paid?fmt(p.paid):'—')+'</td><td class="small">'+(open?'<span class="tg">עד '+dLabel(p.dd)+'</span>':diff==null?'':Math.abs(diff)<Math.max(150,Math.abs(p.due)*.05)?'<span class="pos">✓</span>':diff>0?'<span class="tg bad">חסר '+fmt(diff)+'</span>':'<span class="tg">עודף '+fmt(-diff)+'</span>')+'</td></tr>'});
+ return h+'</tbody></table></div><div class="small dim" style="margin-top:6px">"חסר" בתקופה שעברה מסמן בדרך כלל תשלום שלא נרשם, או הוצאות עם מע"מ שלא נרשמו. לא בהכרח חוב.</div>'}
+function plannerPanel(){const p=planner();if(!p)return'';
+ let h='<div class="pn"><h2>תכנון לסוף השנה: פנסיה והשתלמות</h2><div class="sub">כמה עוד להפקיד עד 31 בדצמבר '+p.y+' כדי לנצל את הטבות המס לעצמאי, לפי רווח שנתי צפוי של '+fmt(p.Y0)+'.</div><div class="grid g2"><div>';
+ if(p.stale)h=h.replace('<div class="grid g2"><div>','<div class="al warn"><span class="ic">!</span><div class="tx">החישוב מבוסס על נתונים חלקיים'+(p.lastInc?' (הכנסות עד '+mLabel(p.lastInc)+')':'')+'. לפני שמחליטים על הפקדה, כדאי לייבא את התנועות והקבלות של החודשים האחרונים.</div></div><div class="grid g2"><div>');
+ h+='<div class="kv"><span>פנסיה: הופקד השנה</span><span>'+fmt(p.ytdPen)+'</span></div>'+(p.proj&&p.pen>p.ytdPen?'<div class="kv"><span>צפוי עם ההפקדות הקבועות</span><span>'+fmt(p.pen)+'</span></div>':'')+'<div class="kv"><span>להטבה המלאה (16.5% מהרווח, עד התקרה)</span><span>'+fmt(p.penOpt)+'</span></div><div class="kv strong"><span>להוסיף עד סוף השנה</span><span>'+fmt(p.addPen)+'</span></div><div class="kv"><span>חיסכון משוער במס</span><span class="pos">'+fmt(p.savePen)+'</span></div><div class="small dim" style="margin-top:4px">ההפקדה המינימלית שהחוק מחייב עצמאי: בערך '+fmt(p.penMin)+' בשנה.</div></div><div>';
+ h+='<div class="kv"><span>השתלמות: הופקד השנה</span><span>'+fmt(p.ytdHish)+'</span></div>'+(p.proj&&p.hish>p.ytdHish?'<div class="kv"><span>צפוי עם ההפקדות הקבועות</span><span>'+fmt(p.hish)+'</span></div>':'')+'<div class="kv"><span>מוכר כהוצאה (4.5%, עד התקרה)</span><span>'+fmt(p.hishDedCap)+'</span></div><div class="kv strong"><span>להוסיף עד סוף השנה</span><span>'+fmt(p.addHish)+'</span></div><div class="kv"><span>חיסכון משוער במס</span><span class="pos">'+fmt(p.saveHish)+'</span></div><div class="small dim" style="margin-top:4px">עד '+fmt(p.hishEx)+' בשנה, הרווחים בקרן פטורים ממס גם מעבר לחלק המוכר.</div></div></div>';
+ return h+'<div class="al warn" style="margin-top:12px;margin-bottom:0"><span class="ic">★</span><div class="tx">סה"כ חיסכון משוער במס: <b>'+fmt(p.total)+'</b>. לפני הפקדה גדולה כדאי לאשר עם הרו"ח את התקרות המדויקות לשנה ואת תנאי "עמית מוטב".</div></div></div>'}
+function breakdownPanel(Y){const T=Y.T,P=TP(Y.y),r=(l,v,s)=>'<div class="kv'+(s?' strong':'')+'"><span>'+l+'</span><span>'+v+'</span></div>';
+ let h='<div class="pn"><details><summary>איך חישבתי את שנת '+Y.y+'</summary><div style="margin-top:8px">';
+ h+=r('הכנסות בלי מע"מ'+(Y.proj?', כולל צפי':''),fmt(T.rev))+r('הוצאות מוכרות'+(Y.ex.depr?', כולל פחת של '+fmt(Y.ex.depr):''),fmt(-T.ded))+r('רווח לפני הטבות',fmt(T.Y0),1)+r('ניכוי 52% מדמי הביטוח הלאומי',fmt(-T.blDed))+r('ניכוי פנסיה (עד 11%)',fmt(-T.penDed))+r('ניכוי השתלמות (עד 4.5%)',fmt(-T.hishDed))+(T.disDed?r('ניכוי ביטוח אובדן כושר',fmt(-T.disDed)):'')+r('הכנסה חייבת',fmt(T.taxable),1);
+ h+=r('מס לפי מדרגות '+Y.y,fmt(T.gross))+r(T.pts+' נקודות זיכוי ('+nf(P.cp)+' ₪ לנקודה בשנה)',fmt(-T.cpv))+r('זיכוי פנסיה (35%)',fmt(-T.penCr))+(T.lifeCr?r('זיכוי ביטוח חיים',fmt(-T.lifeCr)):'')+(T.donCr?r('זיכוי תרומות',fmt(-T.donCr)):'')+r('מס הכנסה',fmt(T.it),1)+r('ביטוח לאומי ובריאות',fmt(T.bl.t));
+ h+='<div class="small dim" style="margin-top:8px">מע"מ '+Math.round(P.vat*100)+'%. מדרגות המס, ערך נקודת הזיכוי ושיעורי הביטוח הלאומי לפי '+Y.y+'. ההכנסות לפי תאריך הקבלה. זו הערכה לתכנון, לא חישוב רשמי.</div>'+(Y.src==='manual'?'<div class="mf"><button class="b bs" onclick="clearAnnual(\''+Y.y+'\')">מחיקת הסיכום השנתי</button></div>':'')+'</div></details></div>';return h}
+function paymentsPanel(Y){const l=Object.values(S.tx).filter(t=>t.k==='tax'&&(t.p||t.d).slice(0,4)===Y.y).sort((a,b)=>a.d<b.d?1:-1);
+ return'<div class="pn"><div class="ttl" style="margin-bottom:6px"><h2>תשלומי מס של '+Y.y+'</h2><button class="b bs" onclick="quickAdd(\'tax\')">רישום תשלום</button></div>'+(l.length?l.map(txRow).join(''):'<div class="dim small">לא נרשמו תשלומים</div>')+'</div>'}
+async function saveAnnual(y){const rev=+$('anRev').value||0,ex=+$('anExp').value||0;if(!(rev>0))return toast('צריך להזין מחזור');const tp=clone(S.set.tp||{});tp.annual=tp.annual||{};tp.annual[y]={rev:rev,exp:ex};await saveSet({tp:tp});render(true)}
+async function clearAnnual(y){const tp=clone(S.set.tp||{});if(tp.annual)delete tp.annual[y];await saveSet({tp:tp});render(true)}
+
+/* ============ הגדרות ============ */
+function setTab(t){SETTAB=t;if(PAGE==='set')render(true)}
+function renderSet(){const tabs=[['profile','פרופיל ומס'],['assets','חסכונות'],['fixed','קבועים ותקציב'],['rules','כללי סיווג'],['security','אבטחה'],['data','גיבוי ונתונים']];
+ $('p-set').innerHTML='<div class="ttl"><h1>הגדרות</h1></div><div style="margin-bottom:14px">'+segHTML(SETTAB,tabs,'setTab')+'</div>'+(({profile:setProfile,assets:setAssets,fixed:setFixed,rules:setRules,security:setSecurity,data:setData})[SETTAB]||setProfile)()}
+function setProfile(){const tp=S.set.tp||{},side=(S.set.bizLines||[]).find(b=>b.id==='side')||{};
+ let h='<div class="pn"><h2>פרטי מס</h2><div class="sub">משפיעים על הערכת מס ההכנסה ועל השוואת התשואות.</div><div class="fg">'+field('נקודות זיכוי','<input class="in num" id="spPts" type="number" step="0.25" min="0" max="20" value="'+(tp.points!=null?tp.points:2.25)+'">')+field('חדר עבודה בבית (% מהדירה)','<input class="in num" id="spHo" type="number" step="1" min="0" max="50" value="'+(+tp.homeOffice||0)+'">')+field('יעד השוואה לתשואה (% לשנה)','<input class="in num" id="spRef" type="number" step="0.5" min="0" max="20" value="'+(+tp.refRate||7)+'">')+'</div>';
+ h+='<div class="small dim" style="margin-top:8px">כל תושב מקבל 2.25 נקודות. יש תוספות, למשל לתואר אקדמי בשנים שאחרי הסיום, או לחייל משוחרר בשלוש השנים שאחרי השחרור. חדר עבודה: האחוז של החדר מכל הדירה, אם הוא משמש רק לעבודה. אז אותו חלק משכר הדירה, מהארנונה ומהחשמל מוכר כהוצאה.</div><div class="mf"><button class="b bp" onclick="saveProfile()">שמירה</button></div></div>';
+ h+='<div class="pn"><h2>עסק נוסף</h2><div class="sub">אם תפתח עסק נוסף, אפשר לעקוב אחריו בנפרד: כמה הוא מכניס, כמה השקעת בו, ואיפה הוא עומד מול התקרה והיעד שקבעת.</div><div class="fg">'+field('מצב','<select class="in" id="spSide">'+opt('0','לא פעיל',!+side.on)+opt('1','פעיל',!!+side.on)+'</select>')+field('שם','<input class="in" id="spSideN" maxlength="30" value="'+esc(side.n||'עסק נוסף')+'">')+field('תקרת השקעה (₪)','<input class="in num" id="spCap" type="number" min="0" value="'+(+side.cap||'')+'">')+field('יעד רווח חודשי (₪)','<input class="in num" id="spTgt" type="number" min="0" value="'+(+side.target||'')+'">')+'</div>'+(+side.on?sideStatus(side):'')+'<div class="mf"><button class="b bp" onclick="saveProfile()">שמירה</button></div></div>';return h}
+function sideStatus(s){let inc=0,exp=0;const ms={};Object.values(S.tx).forEach(t=>{if(t.b!=='side')return;const v=(t.rf?-1:1)*t.a,m=t.d.slice(0,7);if(t.k==='inc'){inc+=v;ms[m]=(ms[m]||0)+v}else if(t.k==='exp'){exp+=v;ms[m]=(ms[m]||0)-v}});const net=inc-exp,lm=addM(curM(),-1);
+ return'<div style="margin-top:12px"><div class="kv"><span>הכנסות עד עכשיו</span><span>'+fmt(inc)+'</span></div><div class="kv"><span>הוצאות עד עכשיו</span><span>'+fmt(exp)+'</span></div><div class="kv strong"><span>'+(net<0?'השקעה נטו':'רווח נטו')+'</span><span class="'+cls(net)+'">'+fmtS(net)+'</span></div>'+(+s.cap&&net<0?'<div class="bar'+(-net>+s.cap*.8?' over':'')+'" style="margin:8px 0"><i style="width:'+Math.min(100,-net/+s.cap*100).toFixed(1)+'%"></i></div><div class="small dim">'+Math.round(-net/+s.cap*100)+'% מתקרת ההשקעה</div>':'')+(+s.target?'<div class="kv"><span>רווח ב'+mLabel(lm)+' מול היעד</span><span>'+fmt(ms[lm]||0)+' מתוך '+fmt(+s.target)+'</span></div>':'')+'</div>'}
+async function saveProfile(){const tp=clone(S.set.tp||{});tp.points=Math.max(0,+$('spPts').value||0);tp.homeOffice=Math.min(50,Math.max(0,+$('spHo').value||0));tp.refRate=Math.max(0,+$('spRef').value||7);
+ const bl=clone(S.set.bizLines||[]);let side=bl.find(b=>b.id==='side');if(!side){side={id:'side'};bl.push(side)}side.on=+$('spSide').value;side.n=$('spSideN').value.trim()||'עסק נוסף';side.cap=Math.max(0,+$('spCap').value||0);side.target=Math.max(0,+$('spTgt').value||0);
+ if(await saveSet({tp:tp,bizLines:bl})){buildIndex();logAct('settings','עדכון פרופיל ומס');toast('נשמר');render(true)}}
+function setAssets(){let h='<div class="pn"><div class="ttl" style="margin-bottom:6px"><h2>החסכונות שלך</h2><button class="b bs" onclick="assetEditor()">חיסכון חדש</button></div><div class="sub">סוג, מס, נזילות, דמי ניהול ונקודת הפתיחה של ההפקדות.</div>';
+ allAssets().forEach(a=>{h+='<div class="li"><span class="dot" style="background:'+a.col+'"></span><span class="t">'+esc(a.n)+' <span class="small dim">'+esc(KINDS[a.k]||'')+(a.arc?', מוסתר':'')+'</span></span><span class="small muted hide-m">'+(a.bm&&+a.bd?'הופקד '+fmt(a.bd)+' עד '+mShort(a.bm):'')+'</span><button class="b bs" onclick="assetEditor(\''+a.id+'\')">עריכה</button></div>'});
+ h+='</div><div class="pn"><h2>חשבונות בתוך חיסכון</h2><div class="sub">כשחיסכון אחד מורכב מכמה חשבונות (למשל קרן השתלמות בשני גופים), מזינים יתרה לכל חשבון והמערכת מחברת.</div>';
+ (S.set.accounts||[]).forEach(c=>{const a=assetById(c.as);h+='<div class="li"><span class="t">'+esc(c.n)+'</span><span class="small dim">'+esc(a?a.n:'')+'</span></div>'});
+ return h+'<div class="row" style="margin-top:10px"><input class="in" id="acN" placeholder="שם החשבון" maxlength="40" style="max-width:200px"><select class="in" id="acA" style="max-width:200px" aria-label="חיסכון">'+A().map(a=>opt(a.id,a.n)).join('')+'</select><button class="b" onclick="addAccount()">הוספת חשבון</button></div></div>'}
+async function addAccount(){const n=$('acN').value.trim(),as=$('acA').value;if(!n||!as)return toast('צריך שם וחיסכון');const acc=clone(S.set.accounts);acc.push({id:'c_'+uid8(),n:n,as:as});if(await saveSet({accounts:acc})){toast('החשבון נוסף');render(true)}}
+function setFixed(){const fx=S.set.fixed||[],bud=S.set.budgets||{},sp=spendByCat(addM(curM(),-1));
+ let h='<div class="pn"><h2>הפקדות ותשלומים קבועים</h2><div class="sub">בסגירת החודש המערכת מציעה לרשום אותם, אם לא יובאו כבר מהבנק. הפקדות לפנסיה ולהשתלמות נכנסות גם לחישוב הטבות המס.</div>';
+ fx.forEach((f,i)=>{h+='<div class="li"><span class="t">'+esc(f.ds||fixedLabel(f))+'<br><span class="small dim">'+esc(fixedLabel(f))+'</span></span><input class="in num" style="max-width:110px" type="number" min="0" aria-label="סכום" value="'+f.a+'" onchange="fxSet('+i+',\'a\',+this.value||0)"><select class="in" style="max-width:105px" aria-label="מצב" onchange="fxSet('+i+',\'on\',+this.value)">'+opt('1','פעיל',f.on!==0)+opt('0','מושהה',f.on===0)+'</select><button class="xb" onclick="fxDel('+i+')" aria-label="מחיקה">✕</button></div>'});
+ h+='<div class="fg" style="margin-top:12px">'+field('סוג','<select class="in" id="fxK" onchange="$(\'fxAsW\').hidden=this.value!==\'dep\';$(\'fxCW\').hidden=this.value!==\'exp\'">'+opt('dep','הפקדה לחיסכון')+opt('exp','הוצאה קבועה')+'</select>')+'<div class="fl" id="fxAsW"><label>חיסכון</label><select class="in" id="fxAs">'+invAssets().map(a=>opt(a.id,a.n)).join('')+'</select></div><div class="fl" id="fxCW" hidden><label>קטגוריה</label><select class="in" id="fxC">'+EXP.map(e=>opt(e.id,e.n)).join('')+'</select></div>'+field('סכום חודשי','<input class="in num" id="fxA" type="number" min="0">')+field('תיאור','<input class="in" id="fxDs" maxlength="60" placeholder="לא חובה">')+'</div><div class="mf"><button class="b bp" onclick="fxAdd()">הוספה</button></div></div>';
+ h+='<div class="pn"><h2>תקציב חודשי</h2><div class="sub">תקרה לכל קטגוריה. בסקירה תופיע התראה כשעוברים אותה. בסוגריים: כמה יצא בחודש שעבר.</div><div class="fg">';
+ EXP.filter(e=>e.t==='p'||e.t==='h').forEach(e=>{h+=field(esc(e.n)+(sp[e.id]?' <span class="dim">('+fmt(sp[e.id])+')</span>':''),'<input class="in num" type="number" min="0" data-bud="'+e.id+'" value="'+(+bud[e.id]||'')+'">')});
+ return h+'</div><div class="mf"><button class="b bp" onclick="saveBudgets()">שמירת תקציב</button></div></div>'}
+async function fxAdd(){const k=$('fxK').value,a=+$('fxA').value;if(!(a>0))return toast('צריך סכום');const f={id:'fx'+uid8(),k:k,a:a,on:1};if(k==='dep')f.as=$('fxAs').value;else f.c=$('fxC').value;f.ds=$('fxDs').value.trim()||fixedLabel(f);const fx=clone(S.set.fixed||[]);fx.push(f);if(await saveSet({fixed:fx})){toast('נוסף');render(true)}}
+async function fxSet(i,k,v){const fx=clone(S.set.fixed||[]);if(!fx[i])return;fx[i][k]=v;await saveSet({fixed:fx})}
+async function fxDel(i){const fx=clone(S.set.fixed||[]),f=fx.splice(i,1)[0];if(await saveSet({fixed:fx})){toast('הוסר',async()=>{const x=clone(S.set.fixed||[]);x.splice(i,0,f);await saveSet({fixed:x});render(true)});render(true)}}
+async function saveBudgets(){const b={};document.querySelectorAll('[data-bud]').forEach(i=>{const v=+i.value;if(v>0)b[i.dataset.bud]=v});if(await saveSet({budgets:b}))toast('התקציב נשמר')}
+function setRules(){const r=S.set.rules||[];let h='<div class="pn"><h2>כללי הסיווג שלך</h2><div class="sub">כשאתה מסווג תנועה בייבוא, המערכת זוכרת את בית העסק ומסווגת אותו לבד בפעם הבאה. כאן אפשר לתקן או למחוק. יש גם כללים מובנים לעסקים נפוצים.</div>';
+ if(!r.length)h+='<div class="dim small">עוד אין כללים משלך.</div>';
+ r.forEach((x,i)=>{h+='<div class="li"><span class="t">'+esc(x.k)+' <span class="small dim">'+(x.dir==='in'?'(כסף נכנס)':x.dir==='out'?'(כסף יוצא)':'')+'</span></span><span class="small">'+esc(tLabel(x.t))+'</span><button class="xb" onclick="ruleDel('+i+')" aria-label="מחיקה">✕</button></div>'});
+ return h+'<div class="fg" style="margin-top:12px">'+field('מילה מתוך התיאור','<input class="in" id="ruK" maxlength="40" placeholder="למשל adobe">')+field('סיווג','<select class="in" id="ruT">'+targetGroups(-1).map(g=>'<optgroup label="'+g[0]+'">'+g[1].map(x=>opt(x[0],x[1])).join('')+'</optgroup>').join('')+'</select>')+'</div><div class="mf"><button class="b bp" onclick="ruleAdd()">הוספת כלל</button></div></div>'}
+async function ruleAdd(){const k=norm($('ruK').value);if(k.length<2)return toast('המילה קצרה מדי');const r=clone(S.set.rules||[]);r.push({k:k,t:$('ruT').value,dir:'out'});if(await saveSet({rules:r}))render(true)}
+async function ruleDel(i){const r=clone(S.set.rules||[]);r.splice(i,1);if(await saveSet({rules:r}))render(true)}
+function rulesText(){return["rules_version = '2';","service cloud.firestore {","  match /databases/{database}/documents {","    function owner(userId) {","      return request.auth != null && request.auth.uid == userId && userId == '"+U.uid+"';","    }","    match /users/{userId}/v2/{docId} {","      allow read: if owner(userId);","      allow write: if owner(userId) && (docId in ['settings', 'balances'] || docId.matches('tx_[0-9]{4}'));","    }","    match /users/{userId}/backups/{day} {","      allow read, delete: if owner(userId);","      allow create, update: if owner(userId) && day.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}.*');","    }","    match /users/{userId}/log/{id} {","      allow read, create: if owner(userId);","    }","    match /users/{userId}/data/{docId} {","      allow read: if owner(userId);","    }","  }","}"].join('\n')}
+function setSecurity(){const p=S.set.prefs||{};let hasPin=false;try{hasPin=!!localStorage.getItem('fb_pin')}catch(e){}
+ let h='<div class="pn"><h2>מי יכול לגשת לנתונים</h2><div class="sub">החוקים האלה נשמרים בשרת של Firebase ונועלים את הנתונים לחשבון שלך בלבד ('+esc(U.email||'')+'). גם מי שיודע את כתובת האתר לא יוכל לקרוא, לשנות או למחוק. יומן הפעולות נעול לשינוי, והנתונים של הגרסה הקודמת נשארים לקריאה בלבד.</div>';
+ h+='<ol class="small" style="padding-inline-start:18px;margin-bottom:10px;line-height:1.9"><li>נכנסים ל-console.firebase.google.com ובוחרים בפרויקט finboard-nech</li><li>בתפריט: Firestore Database, ואז הלשונית Rules</li><li>מוחקים את כל מה שכתוב שם, מדביקים את הטקסט שלמטה ולוחצים Publish</li><li>חוזרים לכאן ומרעננים את הדף, כדי לוודא שהכל נטען</li></ol>';
+ h+='<pre class="code" id="rulesTxt">'+esc(rulesText())+'</pre><div class="mf"><button class="b bp" onclick="copyRules()">העתקת החוקים</button></div></div>';
+ h+='<div class="pn"><h2>נעילה ופרטיות במכשיר הזה</h2><div class="fg">'+field('נעילה אוטומטית','<select class="in" id="seLock" onchange="saveLock(this.value)">'+[0,5,15,30,60].map(v=>opt(String(v),v?'אחרי '+v+' דקות בלי שימוש':'בלי נעילה אוטומטית',(p.autoLock!=null?+p.autoLock:15)===v)).join('')+'</select>')+field('קוד נעילה למכשיר','<input class="in num" id="sePin" type="password" inputmode="numeric" maxlength="8" placeholder="'+(hasPin?'מוגדר. הקלד קוד חדש להחלפה':'4 עד 8 ספרות')+'">')+'</div><div class="mf"><button class="b bp" onclick="savePin()">שמירת הקוד</button>'+(hasPin?'<button class="b" onclick="clearPin()">ביטול הקוד</button>':'')+'</div><div class="small dim" style="margin-top:8px">הקוד נשמר מוצפן, רק במכשיר הזה, ונדרש כדי לפתוח אחרי נעילה. כפתור העין למעלה מסתיר את כל הסכומים, למשל כשמישהו לידך או בשיתוף מסך.</div></div>';
+ h+='<div class="pn"><h2>המלצה אחת חשובה</h2><div class="sub" style="margin-bottom:0">חשבון ה-Google הוא המפתח לכל הנתונים. כדאי להפעיל בו אימות דו-שלבי: myaccount.google.com, ואז אבטחה, ואז אימות דו-שלבי.</div></div>';
+ h+='<div class="pn"><h2>יומן פעולות</h2><div class="sub">כל שינוי נרשם כאן, כולל מאיזה סוג מכשיר. אי אפשר למחוק או לשנות רשומות ביומן.</div><div id="logL" class="small dim">טוען…</div></div>';setTimeout(loadLog,60);return h}
+async function loadLog(){const el=$('logL');if(!el)return;try{const q=await uref().collection('log').orderBy('at','desc').limit(60).get();el.className='';el.innerHTML=q.docs.map(d=>{const x=d.data(),at=x.at&&x.at.toDate?x.at.toDate():null;return'<div class="li"><span class="d">'+(at?at.toLocaleDateString('he-IL')+' '+at.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}):'')+'</span><span class="t">'+esc(x.t||x.act)+'</span><span class="small dim">'+esc(x.dev||'')+'</span></div>'}).join('')||'<div class="dim small">ריק</div>'}catch(e){el.textContent='לא הצלחתי לטעון את היומן: '+e.message}}
+function copyRules(){const t=rulesText();const fb=()=>{const r=document.createRange();r.selectNodeContents($('rulesTxt'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('סימנתי את הטקסט. העתק אותו עם Ctrl+C')};try{navigator.clipboard.writeText(t).then(()=>toast('החוקים הועתקו'),fb)}catch(e){fb()}}
+async function saveLock(v){const p=Object.assign({},S.set.prefs||{});p.autoLock=+v;if(await saveSet({prefs:p}))toast('נשמר')}
+async function savePin(){const v=$('sePin').value.trim();if(!/^\d{4,8}$/.test(v))return toast('קוד של 4 עד 8 ספרות');try{localStorage.setItem('fb_pin',await sha(v))}catch(e){return toast('המכשיר לא מאפשר לשמור קוד')}logAct('security','הוגדר קוד נעילה למכשיר');toast('הקוד נשמר במכשיר הזה');render(true)}
+function clearPin(){try{localStorage.removeItem('fb_pin')}catch(e){}toast('הקוד בוטל');render(true)}
+function setData(){const bk=(S.set.bk||[]).slice().reverse();
+ let h='<div class="pn"><h2>גיבויים בענן</h2><div class="sub">גיבוי אוטומטי פעם ביום, 30 ימים אחורה, ועוד גיבוי לפני כל שחזור או ייבוא גדול.</div>';
+ h+=bk.length?bk.slice(0,40).map(b=>'<div class="li"><span class="t">'+esc(b.id)+'</span><span class="small dim">'+(b.n||0)+' תנועות</span><button class="b bs" onclick="askRestore(\''+esc(b.id)+'\')">שחזור</button></div>').join(''):'<div class="dim small">עוד אין גיבויים. הראשון ייווצר היום.</div>';
+ h+='<div class="mf"><button class="b" onclick="backupNow(\'manual\').then(ok=>{if(ok){toast(\'הגיבוי נשמר\');render(true)}})">גיבוי עכשיו</button></div></div>';
+ h+='<div class="pn"><h2>קובץ גיבוי במחשב</h2><div class="sub">כל הנתונים בקובץ אחד, למקרה הצורך. כדאי פעם בחודש.</div><div class="mf"><button class="b bp" onclick="exportAll()">הורדת קובץ גיבוי</button></div></div>';
+ h+='<div class="pn"><h2>טעינת נתונים מקובץ</h2><div class="sub">אפשר לטעון:<br>• קובץ נתוני העבר (finboard_history.json): מוסיף הפקדות והכנסות מהעבר, בלי כפילויות.<br>• קובץ מהגרסה הקודמת (finboard_data.json): משלים חודשי יתרות ותשלומים שחסרים.<br>• קובץ גיבוי של FinBoard 2: מחליף את כל הנתונים (גיבוי של המצב הנוכחי נשמר קודם).</div><input type="file" id="jsF" accept=".json" style="display:none" onchange="importJSON(this.files[0]);this.value=\'\'"><div class="mf"><button class="b bp" onclick="$(\'jsF\').click()">בחירת קובץ</button></div></div>';
+ h+='<div class="pn"><h2>הגרסה הקודמת</h2><div class="sub">הנתונים של הגרסה הקודמת לא נמחקו. הם שמורים בצד לקריאה בלבד, ואפשר להשלים מהם מה שחסר.</div><div class="mf"><button class="b" onclick="reMigrate()">השלמה מהגרסה הקודמת</button></div></div>';return h}
+function askRestore(id){mo('<h3>שחזור גיבוי</h3><div class="sub">לשחזר את הגיבוי '+esc(id)+'? המצב הנוכחי יישמר קודם כגיבוי נפרד, כך שאפשר לחזור אליו.</div><div class="mf"><button class="b bp" onclick="restoreBackup(\''+esc(id)+'\')">שחזור</button><button class="b" onclick="closeMo()">ביטול</button></div>')}
+function exportAll(){dl(JSON.stringify(dataSnapshot()),'finboard_backup_'+todayS()+'.json','application/json');logAct('export','הורדת קובץ גיבוי')}
+async function importJSON(f){if(!f)return;let o;try{o=JSON.parse(await f.text())}catch(e){return toast('הקובץ לא תקין')}
+ try{if(o.format==='finboard-v2'){mo('<h3>החלפת כל הנתונים</h3><div class="sub">הקובץ יחליף את כל הנתונים הנוכחיים. גיבוי של המצב הנוכחי יישמר קודם.</div><div class="mf"><button class="b bp" id="fullGo">החלפה</button><button class="b" onclick="closeMo()">ביטול</button></div>');$('fullGo').onclick=()=>applyFull(o,'ייבוא קובץ גיבוי');return}
+  if(o.format==='finboard-history-v1'){await backupNow('pre');const r=await importHistory(o);mo('<h3>נתוני העבר נטענו</h3><div class="kv"><span>נוספו</span><span>'+r.add+' תנועות</span></div><div class="kv"><span>דולגו, כבר קיימות</span><span>'+r.skip+'</span></div>'+(r.miss?'<div class="kv"><span>לא נטענו, החיסכון לא קיים</span><span>'+r.miss+'</span></div>':'')+'<div class="sub" style="margin-top:10px">התשואות מחושבות עכשיו לפי המועדים האמיתיים של ההפקדות, והמס של 2024 עד היום לפי ההכנסות מהקבלות.</div><div class="mf"><button class="b bp" onclick="closeMo();go(\'sav\')">לחסכונות</button><button class="b" onclick="closeMo();go(\'tax\')">למס</button></div>');render(true);return}
+  if(o.months&&(o.cats||o.accounts)){await backupNow('pre');const r=migrateLegacy(o,{set:S.set,bal:S.bal,tx:S.tx});await writeState(r.state,false);logAct('legacy','השלמה מקובץ של הגרסה הקודמת');showMigReport(r.report,true);return}
+  toast('לא זיהיתי את סוג הקובץ')}catch(e){console.error(e);toast('הטעינה נכשלה: '+e.message)}}
+async function reMigrate(){try{const d=await uref().collection('data').doc('main').get();if(!d.exists)return toast('לא נמצאו נתונים מהגרסה הקודמת');await backupNow('pre');const r=migrateLegacy(d.data(),{set:S.set,bal:S.bal,tx:S.tx});await writeState(r.state,false);logAct('legacy','השלמה מהגרסה הקודמת');showMigReport(r.report,true)}catch(e){toast('נכשל: '+e.message)}}
+function showMigReport(r,merge){let h='<h3>'+(merge?'ההשלמה הסתיימה':'ברוך הבא ל-FinBoard 2')+'</h3><div class="sub">'+(merge?'השלמתי את מה שחסר, בלי לשכפל מה שכבר קיים.':'העברתי את כל הנתונים מהגרסה הקודמת. הנתונים המקוריים לא נמחקו.')+'</div>';
+ h+='<div class="kv"><span>חודשי יתרות</span><span>'+r.months+(r.months&&r.balOk?', הסכומים זהים ✓':'')+'</span></div><div class="kv"><span>הכנסות</span><span>'+r.inc+(r.inc?' ('+fmt(r.sumI)+')':'')+'</span></div><div class="kv"><span>הוצאות</span><span>'+r.exp+(r.exp?' ('+fmt(r.sumE)+')':'')+'</span></div><div class="kv"><span>תשלומי מס</span><span>'+r.tax+(r.tax?' ('+fmt(r.sumT)+')':'')+'</span></div><div class="kv"><span>הפקדות והעברות</span><span>'+r.flows+'</span></div>';
+ if(r.deps.length)h+='<div class="sub" style="margin-top:12px">סך ההפקדות עד '+(r.bm?mLabel(r.bm):'')+': '+esc(r.deps.join(', '))+'. אפשר לתקן בהגדרות של כל חיסכון.</div>';
+ if(r.txMonths.length)h+='<div class="al warn"><span class="ic">!</span><div class="tx">בגרסה הקודמת, רישום הכנסה, הוצאה או העברה שינה גם את יתרת העו"ש של אותו חודש. כדאי לבדוק מול הבנק את העו"ש בחודשים: '+r.txMonths.map(mShort).join(', ')+'. מעכשיו זה לא קורה: היתרות הן רק מה שאתה מזין.</div></div>';
+ if(!merge)h+='<div class="sub" style="margin-top:12px"><b>מה עכשיו:</b> לטעון את קובץ נתוני העבר (finboard_history.json), ואחר כך להדביק את חוקי האבטחה החדשים בלשונית "אבטחה".</div>';
+ h+='<div class="mf">'+(!merge?'<button class="b bp" onclick="closeMo();SETTAB=\'data\';go(\'set\')">לטעינת נתוני העבר</button>':'')+'<button class="b" onclick="closeMo()">סגירה</button></div>';mo(h)}
+
+/* ============ נעילה ============ */
+function initLock(){if(window._lockInit)return;window._lockInit=1;['pointerdown','keydown','scroll','touchstart'].forEach(ev=>window.addEventListener(ev,()=>{LAST_ACT=Date.now()},{passive:true}));
+ const mins=()=>{const p=(S.set&&S.set.prefs)||{};return p.autoLock!=null?+p.autoLock:15};
+ setInterval(()=>{const m=mins();if(m>0&&!LOCKED&&U&&READY&&Date.now()-LAST_ACT>m*60000)lockNow()},20000);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)HID_AT=Date.now();else{const m=mins();if(m>0&&HID_AT&&!LOCKED&&U&&READY&&Date.now()-HID_AT>m*60000)lockNow()}})}
+function lockNow(){if(!U)return;LOCKED=true;$('lockOv').classList.add('on');$('lockErr').textContent='';let has=false;try{has=!!localStorage.getItem('fb_pin')}catch(e){}$('lockPinWrap').hidden=!has;$('lockMsg').textContent=has?'הקלד את קוד הנעילה של המכשיר.':'המסך נעול. אפשר להגדיר קוד נעילה בהגדרות, בלשונית אבטחה.';if(has)setTimeout(()=>$('lockPin').focus(),60)}
+async function unlock(){let h=null;try{h=localStorage.getItem('fb_pin')}catch(e){}if(h){const v=await sha($('lockPin').value||'');if(v!==h){$('lockErr').textContent='הקוד שגוי';$('lockPin').value='';return}}LOCKED=false;LAST_ACT=Date.now();$('lockPin').value='';$('lockOv').classList.remove('on')}
+async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('fb|'+s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+</script>
+</body>
+</html>
